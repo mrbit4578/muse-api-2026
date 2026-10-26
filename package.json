@@ -7,7 +7,7 @@
     "dev": "vercel dev",
     "start": "node server.js",
     "test": "node tests/kaizen_verification.test.js",
-    "build": "echo 'Build complete'"
+    "build": "node -e \"const fs=require('fs'); fs.cpSync('public','dist',{recursive:true}); console.log('Build completed: public assets copied to dist')\""
   },
   "keywords": [
     "muse",

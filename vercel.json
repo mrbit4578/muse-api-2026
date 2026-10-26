@@ -1,7 +1,6 @@
 {
   "version": 2,
   "name": "api-muse-2026",
-  "framework": null,
   "cleanUrls": true,
   "headers": [
     {
@@ -19,17 +18,6 @@
     { "source": "/v1/images/generations", "destination": "/api/v1/images/generations" },
     { "source": "/v1/models", "destination": "/api/v1/models" },
     { "source": "/v1/videos", "destination": "/api/v1/videos" },
-    { "source": "/v1/videos/:id*", "destination": "/api/v1/videos?id=:id*" },
-    { "source": "/api/auth/login", "destination": "/api/auth/login" },
-    { "source": "/api/auth/extract-session", "destination": "/api/auth/extract-session" },
-    { "source": "/api/auth/status", "destination": "/api/auth/status" },
-    { "source": "/api/auth/keepalive", "destination": "/api/auth/keepalive" },
-    { "source": "/api/auth/mailtm-otp", "destination": "/api/auth/mailtm-otp" },
-    { "source": "/api/drama/generate", "destination": "/api/drama/generate" },
-    { "source": "/api/drama/image", "destination": "/api/drama/image" },
-    { "source": "/api/accounts", "destination": "/api/accounts" },
-    { "source": "/api/proxy-check", "destination": "/api/proxy-check" },
-    { "source": "/", "destination": "/public/index.html" },
-    { "source": "/((?!api|v1).*)", "destination": "/public/$1" }
+    { "source": "/v1/videos/:id*", "destination": "/api/v1/videos?id=:id*" }
   ]
 }

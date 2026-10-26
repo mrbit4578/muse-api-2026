@@ -4,7 +4,6 @@ extension/
 plugins/
 tests/
 icons/
-server.js
 license.js
 background.js
 popup.css

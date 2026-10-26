@@ -1,4 +1,4 @@
-// Standalone development server for local testing
+// Unified Server & Vercel Serverless Entrypoint for API Muse 2026
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -36,7 +36,8 @@ async function handleApiRoute(req, res, handlerPath) {
   }
 }
 
-const server = http.createServer(async (req, res) => {
+// Main Universal Request Handler (Works for both Standalone HTTP & Vercel Serverless Function)
+async function requestHandler(req, res) {
   setCors(res);
 
   if (req.method === 'OPTIONS') {
@@ -45,14 +46,14 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  const parsedUrl = url.parse(req.url, true);
-  const pathname = parsedUrl.pathname;
+  const parsedUrl = url.parse(req.url || '/', true);
+  const pathname = parsedUrl.pathname || '/';
 
   // Add query to req for Vercel compatibility
-  req.query = parsedUrl.query;
+  req.query = req.query || parsedUrl.query || {};
 
-  // Parse body if POST/PUT
-  if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
+  // Parse body if POST/PUT and not already parsed
+  if (['POST', 'PUT', 'PATCH'].includes(req.method) && !req.body) {
     const buffers = [];
     for await (const chunk of req) {
       buffers.push(chunk);
@@ -66,19 +67,28 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Helper response methods for Vercel compatibility
-  res.status = function(code) {
-    this.statusCode = code;
-    return this;
-  };
-  res.json = function(data) {
-    this.setHeader('Content-Type', 'application/json');
-    this.end(JSON.stringify(data));
-  };
-  res.send = function(data) {
-    this.end(data);
-  };
+  if (!res.status) {
+    res.status = function(code) {
+      this.statusCode = code;
+      return this;
+    };
+  }
+  if (!res.json) {
+    res.json = function(data) {
+      this.setHeader('Content-Type', 'application/json');
+      this.end(JSON.stringify(data));
+    };
+  }
+  if (!res.send) {
+    res.send = function(data) {
+      this.end(data);
+    };
+  }
 
-  // Route mapping
+  // 1. API Route mapping
+  if (pathname === '/api' || pathname === '/api/') {
+    return handleApiRoute(req, res, './api/index');
+  }
   if (pathname === '/v1/chat/completions') {
     return handleApiRoute(req, res, './api/v1/chat/completions');
   }
@@ -119,32 +129,37 @@ const server = http.createServer(async (req, res) => {
     return handleApiRoute(req, res, './api/proxy-check');
   }
 
-  // Serve static files from public/
-  let filePath = path.join(__dirname, 'public', pathname === '/' ? 'index.html' : pathname);
-  
-  // Extension download route
-  if (pathname.startsWith('/extension/')) {
-    filePath = path.join(__dirname, pathname);
+  // 2. Serve static files from public/ or dist/
+  const cleanPath = pathname === '/' ? 'index.html' : pathname.replace(/^\//, '');
+  let filePath = path.join(__dirname, 'public', cleanPath);
+  if (!fs.existsSync(filePath)) {
+    filePath = path.join(__dirname, 'dist', cleanPath);
   }
 
-  fs.stat(filePath, (err, stats) => {
-    if (!err && stats.isFile()) {
-      const ext = path.extname(filePath).toLowerCase();
-      res.setHeader('Content-Type', MIME_TYPES[ext] || 'application/octet-stream');
-      fs.createReadStream(filePath).pipe(res);
-    } else {
-      // Fallback to index.html for SPA
-      const indexFile = path.join(__dirname, 'public', 'index.html');
-      if (fs.existsSync(indexFile)) {
-        res.setHeader('Content-Type', 'text/html; charset=UTF-8');
-        fs.createReadStream(indexFile).pipe(res);
-      } else {
-        res.statusCode = 404;
-        res.end('Not Found');
-      }
-    }
-  });
-});
+  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+    const ext = path.extname(filePath).toLowerCase();
+    res.setHeader('Content-Type', MIME_TYPES[ext] || 'application/octet-stream');
+    const fileContent = fs.readFileSync(filePath);
+    return res.end(fileContent);
+  }
+
+  // 3. Fallback to index.html for SPA client-side routing
+  const fallbackIndex = fs.existsSync(path.join(__dirname, 'public', 'index.html'))
+    ? path.join(__dirname, 'public', 'index.html')
+    : path.join(__dirname, 'dist', 'index.html');
+
+  if (fs.existsSync(fallbackIndex)) {
+    res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+    const htmlContent = fs.readFileSync(fallbackIndex);
+    return res.end(htmlContent);
+  }
+
+  res.statusCode = 404;
+  res.end('Not Found');
+}
+
+// Standalone server for local development (node server.js / npm start)
+const server = http.createServer(requestHandler);
 
 if (require.main === module) {
   server.listen(PORT, () => {
@@ -154,4 +169,5 @@ if (require.main === module) {
   });
 }
 
-module.exports = server;
+// Export callable requestHandler for Vercel Serverless Function entrypoint
+module.exports = requestHandler;

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vietnamese Drama Muse Studio Pro V5.2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0a0e17;
+      --card-bg: rgba(18, 24, 38, 0.85);
+      --border: rgba(255, 255, 255, 0.1);
+      --primary: #f59e0b;
+      --primary-gradient: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+      --accent: #00d2ff;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg-dark);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      padding: 24px;
+      line-height: 1.6;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      padding: 18px 24px;
+      border-radius: 16px;
+      margin-bottom: 24px;
+    }
+    .brand h1 { font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+    .badge { background: rgba(245, 158, 11, 0.2); color: var(--primary); padding: 2px 8px; border-radius: 12px; font-size: 11px; }
+    .grid { display: grid; grid-template-columns: 360px 1fr; gap: 24px; }
+    @media(max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #cbd5e1; }
+    input, select, textarea {
+      width: 100%;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 13px;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; }
+    .btn-main {
+      width: 100%;
+      background: var(--primary-gradient);
+      border: none;
+      color: #fff;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+    }
+    .btn-secondary {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .tabs { display: flex; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 16px; }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .tab-btn.active { background: rgba(245, 158, 11, 0.15); color: var(--primary); }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+    pre {
+      background: rgba(0,0,0,0.4);
+      padding: 16px;
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: #7dd3fc;
+      overflow-x: auto;
+      max-height: 500px;
+    }
+    .prompt-item {
+      background: rgba(0,0,0,0.25);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      position: relative;
+    }
+    .btn-copy-mini {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(245, 158, 11, 0.2);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: var(--primary);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <h1>🎬 VIETNAMESE DRAMA MUSE <span class="badge">STUDIO V5.2 PRO</span></h1>
+        <p style="font-size: 12px; color: var(--text-muted);">Sản xuất phim Drama Recap chuẩn điện ảnh với Muse AI</p>
+      </div>
+      <div style="font-size: 13px; color: var(--text-muted);">
+        Gateway API: <strong style="color: #10b981;">Đã kết nối API Muse 2026</strong>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- Sidebar Settings -->
+      <div class="card">
+        <h3 style="margin-bottom: 16px;">⚙️ Thiết lập sản xuất</h3>
+
+        <div class="form-group">
+          <label>Thể loại Drama</label>
+          <select id="genre">
+            <option value="Gia đình / Mẹ chồng nàng dâu / Báo thù">Gia đình / Mẹ chồng nàng dâu / Báo thù</option>
+            <option value="Tình yêu / Phản bội / Đòi lại công lý">Tình yêu / Phản bội / Đòi lại công lý</option>
+            <option value="Tổng tài ngầm / Bí mật thân phận">Tổng tài ngầm / Bí mật thân phận</option>
+            <option value="Nông thôn / Ý chí vươn lên">Nông thôn / Ý chí vươn lên</option>
+            <option value="Phóng sự điều tra / Góc khuất">Phóng sự điều tra / Góc khuất</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Ý tưởng phim (Hoặc kịch bản thô)</label>
+          <textarea id="idea" rows="4" placeholder="Nhập ý tưởng... Ví dụ: Người vợ hiền bị đuổi đi trong đêm mưa, 3 năm sau trở về tiếp quản công ty..."></textarea>
+          <button type="button" class="btn-secondary" style="margin-top: 6px; width: 100%;" onclick="suggestIdeas()">💡 AI Gợi ý 5 ý tưởng kịch tính</button>
+        </div>
+
+        <div class="form-group">
+          <label>Thời lượng phim</label>
+          <select id="duration">
+            <option value="1">1 Phút (4 clips 15s)</option>
+            <option value="3">3 Phút (12 clips 15s)</option>
+            <option value="5" selected>5 Phút (20 clips 15s - Chuẩn)</option>
+            <option value="8">8 Phút (32 clips 15s)</option>
+            <option value="10">10 Phút (40 clips 15s)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Giọng đọc MC Lời bình</label>
+          <select id="accent">
+            <option value="Nam Bắc Bộ 45" selected>Nam Bắc Bộ 45 tuổi (Trầm ấm, uy quyền - Chuẩn)</option>
+            <option value="Nam Nam Bộ 40">Nam Nam Bộ 40 tuổi (Truyền cảm, phóng khoáng)</option>
+            <option value="Nữ Bắc Bộ 30">Nữ Bắc Bộ 30 tuổi (Sâu lắng, cảm xúc)</option>
+            <option value="Nữ Nam Bộ 28">Nữ Nam Bộ 28 tuổi (Ngọt ngào, tự sự)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Kết thúc câu chuyện</label>
+          <select id="ending">
+            <option value="Nhân quả" selected>Nhân quả xứng đáng (Gieo gió gặt bão)</option>
+            <option value="Day dứt / Buồn">Day dứt / Nuối tiếc</option>
+            <option value="Cliffhanger">Cliffhanger (Mở nút cho tập sau)</option>
+            <option value="Happy Ending">Happy Ending trọn vẹn</option>
+          </select>
+        </div>
+
+        <button class="btn-main" id="btnProduce" onclick="startProduction()">🎬 BẮT ĐẦU SẢN XUẤT DRAMA</button>
+      </div>
+
+      <!-- Main Result Tabs -->
+      <div class="card">
+        <div class="tabs">
+          <button class="tab-btn active" onclick="showTab('tab-prompts')">⚡ Chuỗi Prompt Muse AI</button>
+          <button class="tab-btn" onclick="showTab('tab-story')">📖 Toàn văn Kịch bản</button>
+          <button class="tab-btn" onclick="showTab('tab-subtitles')">💬 Phụ đề SRT</button>
+          <button class="tab-btn" onclick="showTab('tab-storyboard')">🎨 Storyboard Keyframes</button>
+        </div>
+
+        <!-- Prompts Tab -->
+        <div id="tab-prompts" class="tab-pane active">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 12px; align-items: center;">
+            <strong id="promptCount">0 Prompts sẵn sàng cho Muse AI</strong>
+            <button class="btn-secondary" onclick="copyAllPrompts()">Copy toàn bộ Prompts 📋</button>
+          </div>
+          <div id="promptsContainer">
+            <p style="color: var(--text-muted); padding: 20px 0; text-align: center;">Chưa có dữ liệu. Hãy nhập ý tưởng và nhấn "Bắt đầu sản xuất" ở khung bên trái.</p>
+          </div>
+        </div>
+
+        <!-- Story Tab -->
+        <div id="tab-story" class="tab-pane">
+          <pre id="storyContent">Chưa có kịch bản.</pre>
+        </div>
+
+        <!-- Subtitles Tab -->
+        <div id="tab-subtitles" class="tab-pane">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+            <span>Phụ đề SRT tính toán chính xác theo nhịp đọc tiếng Việt:</span>
+            <button class="btn-secondary" onclick="downloadSrt()">Tải file .SRT ⬇️</button>
+          </div>
+          <pre id="srtContent">Chưa có phụ đề.</pre>
+        </div>
+
+        <!-- Storyboard Tab -->
+        <div id="tab-storyboard" class="tab-pane">
+          <p style="margin-bottom: 12px; color: var(--text-muted);">Hình ảnh phác thảo phân cảnh (tạo từ Muse Image API):</p>
+          <div id="storyboardGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
+            <p style="color: var(--text-muted);">Hình ảnh phác thảo sẽ xuất hiện sau khi sản xuất.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentProduction = null;
+
+    const SAMPLE_IDEAS = [
+      "Cô con dâu nghèo bị mẹ chồng ép ký giấy từ con và đuổi đi trong đêm mưa, 3 năm sau trở lại với tư cách Chủ tịch tập đoàn thu mua lại công ty gia đình chồng.",
+      "Chàng rể lái xe ôm công nghệ bị cả dòng họ vợ sỉ nhục trong tiệc mừng thọ, thực chất là người thừa kế duy nhất của đế chế nghìn tỷ.",
+      "Người mẹ đơn thân nhặt ve chai nuôi con trai vào đại học, ngày cưới con lại bị mẹ vợ cấm không cho bước vào sảnh chính.",
+      "Cô thư ký hiền lành phát hiện hợp đồng bí mật của giám đốc phản bội công ty, âm thầm lên kế hoạch lật ngược ván cờ vào đúng ngày ký kết.",
+      "Hai chị em sinh đôi bị tráo đổi số phận từ nhỏ ở vùng quê nghèo, sau 20 năm gặp lại tại phiên tòa thừa kế định mệnh."
+    ];
+
+    function suggestIdeas() {
+      const randomIdea = SAMPLE_IDEAS[Math.floor(Math.random() * SAMPLE_IDEAS.length)];
+      document.getElementById('idea').value = randomIdea;
+    }
+
+    function showTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+    }
+
+    async function startProduction() {
+      const btn = document.getElementById('btnProduce');
+      const idea = document.getElementById('idea').value.trim() || SAMPLE_IDEAS[0];
+      const genre = document.getElementById('genre').value;
+      const duration = parseInt(document.getElementById('duration').value, 10);
+      const accent = document.getElementById('accent').value;
+      const ending = document.getElementById('ending').value;
+
+      btn.disabled = true;
+      btn.textContent = 'Đang biên kịch và tạo Prompt Muse... ⏳';
+
+      try {
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idea, genre, durationMinutes: duration, narratorAccent: accent, ending })
+        });
+        const data = await res.json();
+        currentProduction = data;
+        renderProduction(data);
+      } catch (err) {
+        alert('Lỗi sản xuất: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🎬 BẮT ĐẦU SẢN XUẤT DRAMA';
+      }
+    }
+
+    function renderProduction(prod) {
+      // Prompts
+      document.getElementById('promptCount').textContent = `${prod.prompts.length} Prompts Muse chuẩn IVS`;
+      const container = document.getElementById('promptsContainer');
+      container.innerHTML = prod.prompts.map((p, idx) => `
+        <div class="prompt-item">
+          <button class="btn-copy-mini" onclick="copyPrompt('${idx}')">Copy</button>
+          <div id="p_${idx}">${p}</div>
+        </div>
+      `).join('');
+
+      // Story
+      document.getElementById('storyContent').textContent = prod.rawText;
+
+      // Subtitles
+      document.getElementById('srtContent').textContent = prod.srtContent;
+
+      // Storyboard Images
+      const sbGrid = document.getElementById('storyboardGrid');
+      sbGrid.innerHTML = prod.scenes.slice(0, 4).map(sc => `
+        <div style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: #000;">
+          <img src="https://image.pollinations.ai/prompt/${encodeURIComponent(sc.scene + ', cinematic drama lighting, 35mm photography')}?width=400&height=225&nologo=true" style="width: 100%; height: 120px; object-fit: cover;">
+          <div style="padding: 8px; font-size: 11px;">
+            <strong>Clip ${sc.clipNumber}:</strong> ${sc.scene}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function copyPrompt(idx) {
+      const text = document.getElementById('p_' + idx).textContent;
+      navigator.clipboard.writeText(text).then(() => alert('Đã copy Prompt ' + (parseInt(idx)+1)));
+    }
+
+    function copyAllPrompts() {
+      if (!currentProduction || !currentProduction.prompts) return;
+      navigator.clipboard.writeText(currentProduction.prompts.join('\n\n')).then(() => {
+        alert('Đã copy toàn bộ ' + currentProduction.prompts.length + ' prompts Muse AI!');
+      });
+    }
+
+    function downloadSrt() {
+      if (!currentProduction || !currentProduction.srtContent) return;
+      const blob = new Blob([currentProduction.srtContent], { type: 'text/plain;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'vietnamese_drama_subtitles.srt';
+      a.click();
+    }
+  </script>
+</body>
+</html>

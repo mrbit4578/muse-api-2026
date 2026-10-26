@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Muse 2026 - OpenAI Compatible Gateway & Auto Token Extractor</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="icons/icon48.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="dark-theme">
+  <!-- Glow Backgrounds -->
+  <div class="glow-orb orb-1"></div>
+  <div class="glow-orb orb-2"></div>
+  <div class="glow-orb orb-3"></div>
+
+  <div class="app-layout">
+    <!-- Navigation Header -->
+    <header class="navbar">
+      <div class="nav-brand">
+        <div class="logo-box">
+          <span class="logo-icon">⚡</span>
+        </div>
+        <div class="brand-text">
+          <h1>API MUSE <span class="badge-year">2026</span></h1>
+          <p class="tagline">OpenAI-Compatible Gateway & Auto Account Extractor</p>
+        </div>
+      </div>
+
+      <div class="nav-metrics">
+        <div class="metric-pill">
+          <span class="dot live"></span>
+          <span class="metric-label">Vercel Serverless:</span>
+          <strong id="gwStatus">Đang kết nối...</strong>
+        </div>
+        <div class="metric-pill">
+          <span class="metric-label">Tài khoản Live:</span>
+          <strong id="accCount">0</strong>
+        </div>
+        <a href="https://github.com/mrbit4578/muse-api-2026" target="_blank" class="github-btn" title="GitHub Repository">
+          <svg height="18" width="18" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+          </svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- Main Navigation Tabs -->
+    <div class="tabs-container">
+      <nav class="nav-tabs">
+        <button class="tab-link active" data-tab="tab-login">
+          <span class="tab-icon">🔑</span>
+          <span>Đăng nhập & Lấy API</span>
+        </button>
+        <button class="tab-link" data-tab="tab-drama">
+          <span class="tab-icon">🎬</span>
+          <span>Xưởng Phim Drama Muse</span>
+        </button>
+        <button class="tab-link" data-tab="tab-integrate">
+          <span class="tab-icon">🔌</span>
+          <span>Kết nối App (OpenAI)</span>
+        </button>
+        <button class="tab-link" data-tab="tab-playground">
+          <span class="tab-icon">💬</span>
+          <span>AI Playground (Chat & Ảnh)</span>
+        </button>
+        <button class="tab-link" data-tab="tab-accounts">
+          <span class="tab-icon">👥</span>
+          <span>Quản lý Tài khoản</span>
+        </button>
+        <button class="tab-link" data-tab="tab-extension">
+          <span class="tab-icon">🧩</span>
+          <span>Chrome Extension</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Main Content Panes -->
+    <main class="main-content">
+      <!-- TAB 1: LOGIN & AUTO GET API -->
+      <section id="tab-login" class="tab-pane active">
+        <div class="grid-2col">
+          <!-- Login Box -->
+          <div class="glass-card">
+            <div class="card-header">
+              <div class="card-title">
+                <span class="icon-glow">🚀</span>
+                <h2>Auto Login Muse & Trích xuất API</h2>
+              </div>
+              <p class="card-desc">Chỉ cần nhập thông tin tài khoản Muse, hệ thống tự động bóc tách bộ token và kích hoạt API Key chuẩn OpenAI.</p>
+            </div>
+
+            <div class="auth-toggle-group">
+              <button type="button" class="auth-toggle-btn active" id="btnModeCreds">Tài khoản (Email / Mật khẩu)</button>
+              <button type="button" class="auth-toggle-btn" id="btnModeCookie">Dán Cookie / Session</button>
+            </div>
+
+            <!-- Form Credentials -->
+            <form id="formCredentials" class="auth-form">
+              <div class="form-group">
+                <label>Email tài khoản Muse / Meta</label>
+                <div class="input-wrapper">
+                  <span class="input-icon">✉️</span>
+                  <input type="email" id="inputEmail" placeholder="your_email@gmail.com" required autocomplete="email">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Mật khẩu hoặc Mã xác thực (OTP / Code)</label>
+                <div class="input-wrapper">
+                  <span class="input-icon">🔒</span>
+                  <input type="password" id="inputPassword" placeholder="Nhập mật khẩu hoặc mã xác thực...">
+                </div>
+                <small class="field-hint">Hệ thống hỗ trợ cả đăng nhập mật khẩu lẫn mã OTP gửi về email.</small>
+              </div>
+
+              <button type="submit" class="btn-primary" id="btnSubmitLogin">
+                <span class="btn-text">Đăng nhập & Tự động lấy API Muse ⚡</span>
+                <span class="spinner" hidden></span>
+              </button>
+            </form>
+
+            <!-- Form Cookie Paste -->
+            <form id="formCookie" class="auth-form" style="display: none;">
+              <div class="form-group">
+                <label>Dán chuỗi Cookie từ tab muse.ai (F12 hoặc Extension)</label>
+                <textarea id="inputCookieStr" rows="4" placeholder="hatch_sess=...; hatch_gw=...; hatch_vml=...; hatch_native_auth_device=..."></textarea>
+                <small class="field-hint">Hệ thống tự động lọc ra các token quan trọng của Muse và kích hoạt API ngay.</small>
+              </div>
+
+              <button type="submit" class="btn-primary" id="btnSubmitCookie">
+                <span class="btn-text">Trích xuất Token & Kích hoạt API ⚡</span>
+                <span class="spinner" hidden></span>
+              </button>
+            </form>
+
+            <div id="authNotice" class="alert-box" hidden></div>
+
+            <!-- Extra Kaizen Utilities (Mail.tm & Keepalive & UserScript) -->
+            <div class="quick-tools-panel" style="margin-top: 18px; padding-top: 15px; border-top: 1px solid var(--border-glass);">
+              <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+                <span>⚡ Tiện ích Kaizen Tự Động (Từ Muse2API)</span>
+                <span class="badge-mini" style="background: rgba(0, 210, 255, 0.15); color: #00d2ff; padding: 2px 6px; border-radius: 4px; font-size: 10px;">Pro v2.1</span>
+              </div>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <button type="button" class="btn-secondary" id="btnMailTmCreate" onclick="createMailTmTempMail()" style="font-size: 12px; padding: 8px 10px; text-align: left; cursor: pointer;">
+                  📧 <strong>Tạo Email Ảo Mail.tm</strong>
+                  <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Tự sinh email & bắt OTP</div>
+                </button>
+                <button type="button" class="btn-secondary" id="btnKeepaliveWake" onclick="wakeCloudVmAndRenew()" style="font-size: 12px; padding: 8px 10px; text-align: left; cursor: pointer;">
+                  🛡️ <strong>Giữ Phiên 48h & Wake VM</strong>
+                  <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Gia hạn hatch_vml & VM</div>
+                </button>
+              </div>
+
+              <!-- Live Mail.tm Status Banner -->
+              <div id="mailTmStatusBox" style="display: none; margin-top: 10px; padding: 10px; border-radius: 8px; background: rgba(0, 210, 255, 0.08); border: 1px solid rgba(0, 210, 255, 0.2); font-size: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <strong style="color: #00d2ff;">📬 Hòm thư tạm Mail.tm:</strong>
+                  <span id="mailTmStatusText" style="color: #f59e0b;">Đang lắng nghe OTP... ⏳</span>
+                </div>
+                <div style="margin-top: 4px; font-family: monospace; color: #fff; word-break: break-all;" id="mailTmEmailDisplay"></div>
+                <div id="mailTmOtpResult" style="margin-top: 6px; display: none; font-size: 13px; color: #10b981; font-weight: bold;"></div>
+              </div>
+
+              <!-- Tampermonkey UserScript Link -->
+              <div style="margin-top: 10px; font-size: 11px; color: var(--text-muted); display: flex; align-items: center; justify-content: space-between;">
+                <span>Chạy Tampermonkey trên muse.ai:</span>
+                <a href="/muse_cookie_importer.user.js" target="_blank" style="color: #38bdf8; text-decoration: none; font-weight: 600;">⚡ Cài đặt UserScript ↗</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active API Key & Tokens Result -->
+          <div class="glass-card result-card">
+            <div class="card-header">
+              <div class="card-title">
+                <span class="icon-glow">✨</span>
+                <h2>Thông tin API Muse 2026</h2>
+              </div>
+              <span id="badgeActiveStatus" class="status-tag inactive">Chưa kích hoạt</span>
+            </div>
+
+            <div class="result-body">
+              <!-- API Key Box -->
+              <div class="info-group">
+                <label>API Key (OpenAI Compatible Bearer Token):</label>
+                <div class="copy-box">
+                  <input type="text" id="displayApiKey" readonly value="Vui lòng đăng nhập để tạo API Key">
+                  <button type="button" class="btn-copy" onclick="copyField('displayApiKey')">Copy</button>
+                </div>
+              </div>
+
+              <!-- Base URL Box -->
+              <div class="info-group">
+                <label>API Base URL (Dán vào NextChat / LobeChat / Cherry Studio):</label>
+                <div class="copy-box">
+                  <input type="text" id="displayBaseUrl" readonly value="https://api-muse-2026.vercel.app/v1">
+                  <button type="button" class="btn-copy" onclick="copyField('displayBaseUrl')">Copy</button>
+                </div>
+              </div>
+
+              <!-- Extracted Tokens Box -->
+              <div class="token-details-accordion">
+                <div class="accordion-header" onclick="toggleTokensAccordion()">
+                  <span>🔍 Chi tiết Tokens Muse đã trích xuất (Hatch Cookies)</span>
+                  <span id="accordionArrow">▼</span>
+                </div>
+                <div id="tokensAccordionContent" class="accordion-content" hidden>
+                  <div class="token-row">
+                    <span>hatch_sess:</span>
+                    <code id="valHatchSess">-</code>
+                  </div>
+                  <div class="token-row">
+                    <span>hatch_gw:</span>
+                    <code id="valHatchGw">-</code>
+                  </div>
+                  <div class="token-row">
+                    <span>hatch_vml:</span>
+                    <code id="valHatchVml">-</code>
+                  </div>
+                  <div class="token-row">
+                    <span>hatch_native_auth_device:</span>
+                    <code id="valHatchDevice">-</code>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quota Bar -->
+              <div class="quota-container">
+                <div class="quota-labels">
+                  <span>Hạn mức truy vấn (Quota):</span>
+                  <strong id="quotaNumbers">998,760 / 1,000,000 tokens</strong>
+                </div>
+                <div class="progress-bar">
+                  <div class="progress-fill" id="quotaFill" style="width: 15%;"></div>
+                </div>
+              </div>
+
+              <div class="quick-test-actions" style="flex-wrap: wrap;">
+                <button type="button" class="btn-primary" style="width: 100%; margin-bottom: 8px; background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);" onclick="goToDramaStudioWithKey()">🎬 Tạo Phim Drama với Key này ngay ➜</button>
+                <button type="button" class="btn-secondary" onclick="switchTab('tab-playground')">Mở AI Playground test ngay 💬</button>
+                <button type="button" class="btn-secondary" onclick="switchTab('tab-integrate')">Xem hướng dẫn cấu hình App 🔌</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: VIETNAMESE DRAMA MUSE STUDIO -->
+      <section id="tab-drama" class="tab-pane">
+        <div class="glass-card" style="margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div>
+              <h2 style="font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                🎬 VIETNAMESE DRAMA MUSE <span class="badge-year" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; border-color: rgba(245, 158, 11, 0.4);">STUDIO V5.2 PRO</span>
+              </h2>
+              <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+                Đấu nối trực tiếp với <strong>API Muse 2026 Gateway</strong>: Tự động chạy Kịch bản ➜ Chuỗi Prompt ➜ Phụ đề SRT ➜ Storyboard Keyframes ➜ Lồng tiếng Voice ➜ Dựng phim & Xuất Video.
+              </p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span class="metric-pill" style="border-color: rgba(245, 158, 11, 0.3);">
+                <span class="dot live" style="background: #f59e0b; box-shadow: 0 0 8px #f59e0b;"></span>
+                <span>Khóa API:</span>
+                <strong id="dramaBoundApiKey" style="color: #38bdf8; font-family: var(--font-mono); font-size: 12px;">Chưa liên kết</strong>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="drama-layout">
+          <!-- Left: Settings & Pipeline -->
+          <div class="glass-card drama-sidebar">
+            <h3 style="font-size: 16px; font-weight: 700;">⚙️ Thiết lập sản xuất Phim</h3>
+
+            <div class="form-group">
+              <label>Thể loại Drama</label>
+              <select id="dramaGenre">
+                <option value="Tổng tài ngầm / Bí mật thân phận / Báo thù" selected>Tổng tài ngầm / Bí mật thân phận / Báo thù</option>
+                <option value="Gia đình / Mẹ chồng nàng dâu / Báo thù">Gia đình / Mẹ chồng nàng dâu / Báo thù</option>
+                <option value="Tình yêu / Phản bội / Đòi lại công lý">Tình yêu / Phản bội / Đòi lại công lý</option>
+                <option value="Nông thôn / Ý chí vươn lên đổi đời">Nông thôn / Ý chí vươn lên đổi đời</option>
+                <option value="Phóng sự điều tra / Phơi bày góc khuất">Phóng sự điều tra / Phơi bày góc khuất</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Ý tưởng phim (Hoặc kịch bản cốt lõi)</label>
+              <textarea id="dramaIdea" rows="3" placeholder="Nhập ý tưởng phim... Ví dụ: Chàng rể lái xe ôm công nghệ bị cả dòng họ vợ sỉ nhục trong tiệc mừng thọ..."></textarea>
+              <button type="button" class="btn-secondary" style="margin-top: 6px; width: 100%; font-size: 11px;" onclick="suggestDramaIdeas()">💡 AI Gợi ý 5 ý tưởng kịch tính</button>
+            </div>
+
+            <div class="form-group">
+              <label>Thời lượng phim</label>
+              <select id="dramaDuration">
+                <option value="1">1 Phút (4 clips 15s - Test nhanh)</option>
+                <option value="3">3 Phút (12 clips 15s)</option>
+                <option value="5" selected>5 Phút (20 clips 15s - Chuẩn điện ảnh)</option>
+                <option value="10">10 Phút (40 clips 15s - Phim ngắn đầy đủ)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Giọng đọc MC Lời bình</label>
+              <select id="dramaAccent">
+                <option value="Nam Bắc Bộ 45 tuổi (Trầm ấm, uy quyền)" selected>Nam Bắc Bộ 45 tuổi (Trầm ấm, uy quyền - Mặc định)</option>
+                <option value="Nam Nam Bộ 40 tuổi (Truyền cảm, phóng khoáng)">Nam Nam Bộ 40 tuổi (Truyền cảm, phóng khoáng)</option>
+                <option value="Nữ Bắc Bộ 30 tuổi (Sâu lắng, cảm xúc)">Nữ Bắc Bộ 30 tuổi (Sâu lắng, cảm xúc)</option>
+                <option value="Nữ Nam Bộ 28 tuổi (Ngọt ngào, tự sự)">Nữ Nam Bộ 28 tuổi (Ngọt ngào, tự sự)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Kết thúc câu chuyện</label>
+              <select id="dramaEnding">
+                <option value="Nhân quả xứng đáng (Gieo gió gặt bão)" selected>Nhân quả xứng đáng (Gieo gió gặt bão)</option>
+                <option value="Day dứt / Nuối tiếc">Day dứt / Nuối tiếc</option>
+                <option value="Cliffhanger">Cliffhanger (Bí mật mở cho tập sau)</option>
+                <option value="Happy Ending">Happy Ending trọn vẹn</option>
+              </select>
+            </div>
+
+            <button type="button" class="btn-primary" id="btnStartPipeline" style="background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); font-size: 14px; padding: 14px 10px;" onclick="startDramaFullPipeline()">
+              <span id="btnPipelineText">🚀 TẠO PHIM DRAMA TRỌN GÓI</span>
+            </button>
+
+            <!-- Pipeline Tracker -->
+            <div class="pipeline-tracker" id="pipelineBox">
+              <div class="pipeline-header">
+                <span>TIẾN TRÌNH SẢN XUẤT</span>
+                <span id="pipelineProgressLabel">0 / 7 Hoàn tất</span>
+              </div>
+              <div class="pipeline-steps">
+                <div class="pipeline-step" id="step1">
+                  <span class="step-icon">1</span>
+                  <span>Khởi tạo kịch bản với API Key Muse</span>
+                </div>
+                <div class="pipeline-step" id="step2">
+                  <span class="step-icon">2</span>
+                  <span>Tối ưu chuỗi Prompts Muse IVS</span>
+                </div>
+                <div class="pipeline-step" id="step3">
+                  <span class="step-icon">3</span>
+                  <span>Tạo phụ đề chuẩn SRT millisecond</span>
+                </div>
+                <div class="pipeline-step" id="step4">
+                  <span class="step-icon">4</span>
+                  <span>Vẽ ảnh Storyboard Keyframes</span>
+                </div>
+                <div class="pipeline-step" id="step5">
+                  <span class="step-icon">5</span>
+                  <span>Lồng tiếng AI Voice (MC & Thoại)</span>
+                </div>
+                <div class="pipeline-step" id="step6">
+                  <span class="step-icon">6</span>
+                  <span>Dựng phim & Ghép hiệu ứng Ken Burns</span>
+                </div>
+                <div class="pipeline-step" id="step7">
+                  <span class="step-icon">7</span>
+                  <span>Xuất bản Video Thành Phẩm 🎥</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Result Views -->
+          <div class="glass-card" style="padding: 20px;">
+            <div class="drama-subtabs">
+              <button class="drama-subtab-btn active" onclick="switchDramaSubtab('dsub-video')">🎥 Video Thành Phẩm</button>
+              <button class="drama-subtab-btn" onclick="switchDramaSubtab('dsub-prompts')">⚡ Chuỗi Prompt Muse AI</button>
+              <button class="drama-subtab-btn" onclick="switchDramaSubtab('dsub-story')">📖 Toàn văn Kịch bản</button>
+              <button class="drama-subtab-btn" onclick="switchDramaSubtab('dsub-srt')">💬 Phụ đề SRT</button>
+              <button class="drama-subtab-btn" onclick="switchDramaSubtab('dsub-storyboard')">🎨 Storyboard Keyframes</button>
+              <button class="drama-subtab-btn" onclick="switchDramaSubtab('dsub-voice')">🎙️ Lồng tiếng Voice</button>
+            </div>
+
+            <!-- SUB-TAB 1: VIDEO PLAYER -->
+            <div id="dsub-video" class="drama-pane active">
+              <div class="cinematic-player-box">
+                <div class="video-screen-wrapper">
+                  <canvas id="dramaCanvas" width="1280" height="720"></canvas>
+                  <video id="renderedVideoPlayer" controls></video>
+                  <div id="videoOverlayEmpty" class="video-overlay-placeholder">
+                    <span style="font-size: 48px;">🎬</span>
+                    <h3>Sẵn sàng sản xuất Phim Drama</h3>
+                    <p style="font-size: 13px; color: var(--text-muted); max-width: 450px;">
+                      Nhấn nút <strong>"🚀 TẠO PHIM DRAMA TRỌN GÓI"</strong> ở bảng bên trái. Hệ thống sẽ tự động ghép ảnh Ken Burns, lồng tiếng voiceover tiếng Việt và phụ đề phim!
+                    </p>
+                  </div>
+                </div>
+
+                <div class="video-controls-bar">
+                  <div class="player-actions-left">
+                    <button type="button" class="btn-player primary" id="btnPlayLiveCanvas" onclick="toggleCanvasPlay()">
+                      <span id="playIconText">▶️ Phát Video</span>
+                    </button>
+                    <span class="video-time-display" id="videoTimeTrack">00:00 / 00:00</span>
+                  </div>
+
+                  <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn-player" id="btnDownloadVideo" onclick="downloadRenderedVideo()" disabled>
+                      ⬇️ Tải Video (.webm)
+                    </button>
+                    <button type="button" class="btn-player" onclick="downloadAllDramaAssets()">
+                      📦 Tải Trọn Bộ (ZIP)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SUB-TAB 2: PROMPTS -->
+            <div id="dsub-prompts" class="drama-pane">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <strong id="dramaPromptsCount" style="color: #f59e0b;">0 Prompts Muse AI</strong>
+                <button type="button" class="btn-secondary" onclick="copyAllDramaPrompts()">Copy toàn bộ Prompts 📋</button>
+              </div>
+              <div id="dramaPromptsList" style="max-height: 520px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+                <p style="color: var(--text-muted); text-align: center; padding: 30px 0;">Chưa có dữ liệu prompt.</p>
+              </div>
+            </div>
+
+            <!-- SUB-TAB 3: STORY -->
+            <div id="dsub-story" class="drama-pane">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <strong id="dramaStoryTitle" style="color: #38bdf8;">Kịch bản chi tiết</strong>
+                <button type="button" class="btn-secondary" onclick="copyField('dramaStoryMarkdown')">Copy kịch bản 📋</button>
+              </div>
+              <textarea id="dramaStoryMarkdown" rows="18" readonly style="font-family: var(--font-mono); font-size: 12px; background: rgba(0,0,0,0.35); color: #cbd5e1;"></textarea>
+            </div>
+
+            <!-- SUB-TAB 4: SRT SUBTITLES -->
+            <div id="dsub-srt" class="drama-pane">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <span>Phụ đề SRT đồng bộ từng mili-giây (Dùng cho CapCut / Premiere):</span>
+                <button type="button" class="btn-secondary" onclick="downloadSrtDirect()">Tải file .SRT ⬇️</button>
+              </div>
+              <textarea id="dramaSrtText" rows="18" readonly style="font-family: var(--font-mono); font-size: 12px; background: rgba(0,0,0,0.35); color: #7dd3fc;"></textarea>
+            </div>
+
+            <!-- SUB-TAB 5: STORYBOARD KEYFRAMES -->
+            <div id="dsub-storyboard" class="drama-pane">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <span>Hình ảnh phân cảnh phác thảo (Tạo bởi Muse Image API):</span>
+                <span id="sbCount" style="color: #f59e0b;">0 hình ảnh</span>
+              </div>
+              <div class="storyboard-cards-grid" id="dramaStoryboardGrid">
+                <p style="color: var(--text-muted); text-align: center; grid-column: 1/-1; padding: 40px 0;">Chưa có hình ảnh storyboard.</p>
+              </div>
+            </div>
+
+            <!-- SUB-TAB 6: VOICE & AUDIO -->
+            <div id="dsub-voice" class="drama-pane">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <span>Danh sách giọng đọc MC & Thoại nhân vật từng phân cảnh:</span>
+                <button type="button" class="btn-secondary" onclick="speakAllScenesSequentially()">Nghe thử toàn bộ 🔊</button>
+              </div>
+              <div class="voice-track-list" id="dramaVoiceList">
+                <p style="color: var(--text-muted); text-align: center; padding: 30px 0;">Chưa có dữ liệu giọng đọc.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: INTEGRATION & APP GUIDES -->
+      <section id="tab-integrate" class="tab-pane">
+        <div class="glass-card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="icon-glow">🔌</span>
+              <h2>Tích hợp vào các phần mềm AI (OpenAI Compatible)</h2>
+            </div>
+            <p class="card-desc">API Muse 2026 hỗ trợ 100% chuẩn OpenAI. Bạn có thể sử dụng trực tiếp trên mọi ứng dụng client AI yêu thích.</p>
+          </div>
+
+          <div class="integration-grid">
+            <!-- NextChat / ChatGPT-Next-Web -->
+            <div class="integ-item">
+              <div class="integ-head">
+                <span class="app-icon">🤖</span>
+                <h3>NextChat (ChatGPT-Next-Web)</h3>
+              </div>
+              <p>Mở Cài đặt (Settings) trong NextChat:</p>
+              <ul>
+                <li><strong>Endpoint:</strong> <code class="inline-code" id="codeNextChatUrl">https://.../v1</code></li>
+                <li><strong>API Key:</strong> <code class="inline-code" id="codeNextChatKey">sk-muse-...</code></li>
+                <li><strong>Custom Models:</strong> <code>muse-spark-1.1,muse-chat-v2,gpt-4o-muse</code></li>
+              </ul>
+            </div>
+
+            <!-- LobeChat -->
+            <div class="integ-item">
+              <div class="integ-head">
+                <span class="app-icon">🔮</span>
+                <h3>LobeChat</h3>
+              </div>
+              <p>Cài đặt > AI Provider > OpenAI:</p>
+              <ul>
+                <li><strong>API Key:</strong> <code class="inline-code" id="codeLobeKey">sk-muse-...</code></li>
+                <li><strong>API Proxy Address:</strong> <code class="inline-code" id="codeLobeUrl">https://.../v1</code></li>
+                <li><strong>Check Connection:</strong> Đạt chuẩn 100% phản hồi.</li>
+              </ul>
+            </div>
+
+            <!-- Cherry Studio -->
+            <div class="integ-item">
+              <div class="integ-head">
+                <span class="app-icon">🍒</span>
+                <h3>Cherry Studio / TypingMind</h3>
+              </div>
+              <p>Thêm nhà cung cấp OpenAI tương thích:</p>
+              <ul>
+                <li><strong>Base URL:</strong> <code class="inline-code" id="codeCherryUrl">https://.../v1</code></li>
+                <li><strong>API Key:</strong> <code class="inline-code" id="codeCherryKey">sk-muse-...</code></li>
+              </ul>
+            </div>
+
+            <!-- cURL & Python SDK -->
+            <div class="integ-item full-width">
+              <div class="integ-head">
+                <span class="app-icon">💻</span>
+                <h3>Gọi trực tiếp bằng cURL / Python / Node.js</h3>
+              </div>
+              <pre><code class="code-block">curl https://api-muse-2026.vercel.app/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-muse-your-key" \
+  -d '{
+    "model": "muse-spark-1.1",
+    "messages": [{"role": "user", "content": "Xin chào Muse AI!"}],
+    "stream": true
+  }'</code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: PLAYGROUND (CHAT & IMAGE) -->
+      <section id="tab-playground" class="tab-pane">
+        <div class="playground-layout">
+          <!-- Chat Sidebar Settings -->
+          <div class="glass-card pg-sidebar">
+            <h3>Cấu hình Model & AI Persona</h3>
+            <div class="form-group">
+              <label>Model / AI Persona</label>
+              <select id="pgModel" onchange="onModelOrPersonaChange()">
+                <optgroup label="⚡ Foundation Models">
+                  <option value="muse-spark-1.1" selected>muse-spark-1.1 (Mạnh nhất - Mặc định)</option>
+                  <option value="muse-chat-v2">muse-chat-v2 (Nhanh & Tối ưu tiếng Việt)</option>
+                  <option value="muse-omni-flash">muse-omni-flash (Tốc độ phản hồi cực nhanh)</option>
+                  <option value="gpt-4o-muse">gpt-4o-muse (OpenAI Alias)</option>
+                </optgroup>
+                <optgroup label="🧠 Stanford CS229 AI Personas">
+                  <option value="muse-coder">💻 muse-coder (Senior Coder - T=0.1, P=0.1)</option>
+                  <option value="muse-analyst">📊 muse-analyst (Data Analyst - T=0.2, P=0.2)</option>
+                  <option value="muse-assistant">🤝 muse-assistant (Universal Assistant - T=0.7)</option>
+                  <option value="muse-creative">🎭 muse-creative (Drama & Story - T=1.1, P=0.95)</option>
+                  <option value="muse-researcher">🔬 muse-researcher (Scientist - T=0.3, P=0.4)</option>
+                </optgroup>
+              </select>
+            </div>
+
+            <!-- Stanford CS229 Decoding Strategy Toolbar -->
+            <div class="decoding-section">
+              <label>Chiến lược Giải mã (CS229 Decoding)</label>
+              <div class="preset-pills">
+                <button type="button" class="preset-pill" id="pillDet" onclick="applyDecodingPreset('deterministic')">🎯 Chính xác</button>
+                <button type="button" class="preset-pill active" id="pillBal" onclick="applyDecodingPreset('balanced')">⚖️ Cân bằng</button>
+                <button type="button" class="preset-pill" id="pillCre" onclick="applyDecodingPreset('creative')">✨ Sáng tạo</button>
+                <button type="button" class="preset-pill" id="pillCus" onclick="toggleCustomDecoding()">⚙️ Tùy chỉnh</button>
+              </div>
+
+              <!-- Sliders (T & Top-P) -->
+              <div class="slider-controls" id="customDecodingBox" style="display: none;">
+                <div class="slider-row">
+                  <div class="slider-row-header">
+                    <span>Nhiệt độ (Temperature T)</span>
+                    <strong id="valTemp">0.70</strong>
+                  </div>
+                  <input type="range" id="inputTemp" min="0" max="2" step="0.05" value="0.7" oninput="onTempSliderChange(this.value)">
+                </div>
+                <div class="slider-row">
+                  <div class="slider-row-header">
+                    <span>Nucleus Sampling (Top-p)</span>
+                    <strong id="valTopP">0.90</strong>
+                  </div>
+                  <input type="range" id="inputTopP" min="0.05" max="1" step="0.05" value="0.9" oninput="onTopPSliderChange(this.value)">
+                </div>
+              </div>
+            </div>
+
+            <!-- Attention & Context Health Monitor -->
+            <div class="context-health-card">
+              <div class="context-health-header">
+                <span style="font-weight: 600;">Attention & Context Health</span>
+                <span class="health-status-badge" id="ctxHealthBadge">🟢 Khỏe mạnh</span>
+              </div>
+              <div class="progress-bar" style="height: 6px;">
+                <div class="progress-fill" id="ctxUsageFill" style="width: 5%; background: #10b981;"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; color: var(--text-muted); font-size: 10px;">
+                <span id="ctxMsgCount">1 tin nhắn</span>
+                <span id="ctxTokensUsage">~15 / 16,384 tokens</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Chế độ phản hồi</label>
+              <div class="toggle-row">
+                <label class="switch">
+                  <input type="checkbox" id="pgStream" checked>
+                  <span class="slider round"></span>
+                </label>
+                <span>Streaming SSE (Gõ chữ từng từ)</span>
+              </div>
+            </div>
+
+            <div class="pg-mode-selector">
+              <button type="button" class="mode-btn active" id="btnModeChat" onclick="setPlaygroundMode('chat')">💬 Hội thoại (Chat)</button>
+              <button type="button" class="mode-btn" id="btnModeImage" onclick="setPlaygroundMode('image')">🎨 Sinh ảnh (Image)</button>
+            </div>
+
+            <button type="button" class="btn-secondary full-width" onclick="clearPlaygroundChat()">Xóa lịch sử chat 🧹</button>
+          </div>
+
+          <!-- Chat Window -->
+          <div class="glass-card pg-chat-box">
+            <!-- Chat Pane -->
+            <div id="pgChatPane" class="pg-pane active">
+              <div class="chat-messages" id="chatMessages">
+                <div class="message system">
+                  <div class="msg-bubble">
+                    👋 Chào mừng bạn đến với **AI Playground**. Hãy nhập tin nhắn bên dưới để trò chuyện cùng Muse AI qua chuẩn streaming API.
+                  </div>
+                </div>
+              </div>
+
+              <!-- Live Token Estimation & Parameter Badge -->
+              <div class="chat-toolbar-info">
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <span class="token-live-badge" id="liveTokenBadge">⚡ BPE: ~0 tokens</span>
+                  <span style="font-size: 11px; color: var(--text-muted);" id="currentDecodingLabel">🎯 T: 0.70 | P: 0.90 (Cân bằng)</span>
+                </div>
+                <span style="font-size: 10px; color: var(--text-muted);">KV-Cache: Sliding 20 turns</span>
+              </div>
+
+              <form id="chatForm" class="chat-input-bar">
+                <input type="text" id="chatInput" placeholder="Nhập câu hỏi hoặc yêu cầu..." autocomplete="off" oninput="onChatInputChanged(this.value)">
+                <button type="submit" class="btn-send" id="btnSendChat">Gửi 🚀</button>
+              </form>
+            </div>
+
+            <!-- Image Pane -->
+            <div id="pgImagePane" class="pg-pane" style="display: none;">
+              <div class="image-generator-box">
+                <div class="form-group">
+                  <label>Mô tả bức ảnh bạn muốn tạo (Prompt):</label>
+                  <textarea id="imagePrompt" rows="3" placeholder="A futuristic cyberpunk city with neon lights and flying cars, ultra-detailed 8k..."></textarea>
+                </div>
+                <button type="button" class="btn-primary" id="btnGenImage" onclick="generateImage()">Tạo ảnh AI 🎨</button>
+
+                <div id="imageResultContainer" class="image-result-grid">
+                  <!-- Images will render here -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: ACCOUNT POOL -->
+      <section id="tab-accounts" class="tab-pane">
+        <div class="glass-card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="icon-glow">👥</span>
+              <h2>Hệ thống Account Pool (Cân bằng tải & Multi-Account)</h2>
+            </div>
+            <button class="btn-secondary" onclick="loadAccountsList()">Làm mới danh sách 🔄</button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Tài khoản</th>
+                  <th>Gói / Plan</th>
+                  <th>API Key</th>
+                  <th>Hạn mức Quota</th>
+                  <th>Trạng thái</th>
+                  <th>Hành động</th>
+                </tr>
+              </thead>
+              <tbody id="accountsTableBody">
+                <tr>
+                  <td colspan="6" class="text-center">Đang tải danh sách tài khoản...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: EXTENSION COMPANION -->
+      <section id="tab-extension" class="tab-pane">
+        <div class="glass-card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="icon-glow">🧩</span>
+              <h2>Chrome Extension Trợ lý Đồng bộ Muse 2026</h2>
+            </div>
+            <p class="card-desc">Cài đặt tiện ích mở rộng vào trình duyệt Google Chrome để tự động phát hiện và đồng bộ phiên đăng nhập Muse sang Web App chỉ với 1 click.</p>
+          </div>
+
+          <div class="extension-guide-grid">
+            <div class="guide-step">
+              <div class="step-num">1</div>
+              <h4>Tải thư mục Extension</h4>
+              <p>Mã nguồn extension nằm trong thư mục <code>/extension</code> của dự án.</p>
+            </div>
+            <div class="guide-step">
+              <div class="step-num">2</div>
+              <h4>Bật Developer Mode</h4>
+              <p>Vào <code>chrome://extensions</code> trên Chrome, bật công tắc <strong>Developer mode</strong> ở góc phải trên.</p>
+            </div>
+            <div class="guide-step">
+              <div class="step-num">3</div>
+              <h4>Load Unpacked</h4>
+              <p>Bấm nút <strong>Load unpacked</strong> và chọn thư mục <code>extension</code> của dự án.</p>
+            </div>
+            <div class="guide-step">
+              <div class="step-num">4</div>
+              <h4>1-Click Auto Sync</h4>
+              <p>Đăng nhập vào <code>https://muse.ai</code>, mở extension và bấm <strong>"Auto-Get Muse API & Sync"</strong>!</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>© 2026 <strong>API Muse 2026</strong> · Thiết kế và tối ưu bởi <strong>Mr.Bit25</strong> · Vercel Ready ⚡</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

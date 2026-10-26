@@ -1,0 +1,58 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "vietnamese-drama-muse",
+  "version": "5.2.0",
+  "displayName": "Vietnamese Drama Muse Studio Pro",
+  "description": "Hệ sinh thái sản xuất video Drama Recap Việt Nam bằng Muse AI: Biên kịch 3 hồi, Tối ưu Prompt Muse, Đạo diễn âm thanh TTS, Sinh Storyboard và Tự động xuất phụ đề SRT.",
+  "author": {
+    "name": "Afanta Studio & Mr.Bit25"
+  },
+  "skills": [
+    {
+      "name": "drama-recap",
+      "path": "skills/drama-recap/SKILL.md",
+      "description": "Tổng đạo diễn điều phối toàn diện quy trình sản xuất Drama Recap bằng Muse AI."
+    },
+    {
+      "name": "drama-scriptwriter",
+      "path": "skills/drama-scriptwriter/SKILL.md",
+      "description": "Biên kịch kịch bản drama 3 hồi kịch tính cao với lời thoại thuần Việt sắc sảo."
+    },
+    {
+      "name": "muse-prompt-optimizer",
+      "path": "skills/muse-prompt-optimizer/SKILL.md",
+      "description": "Chuyển hóa kịch bản thành các câu lệnh Muse AI chuẩn điện ảnh, góc máy IVS và negative filter."
+    },
+    {
+      "name": "voice-tts-director",
+      "path": "skills/voice-tts-director/SKILL.md",
+      "description": "Đạo diễn lồng tiếng MC Bắc/Nam, tính toán thời lượng ~135 từ/phút và tự động sinh file phụ đề SRT."
+    },
+    {
+      "name": "storyboard-generator",
+      "path": "skills/storyboard-generator/SKILL.md",
+      "description": "Trực quan hóa phân cảnh thành hình ảnh Storyboard và kết nối trực tiếp với cổng API Muse."
+    }
+  ],
+  "categories": ["Productivity", "Creative", "Video Production", "Entertainment"],
+  "capabilities": [
+    "scriptwriting",
+    "prompt-engineering",
+    "voice-synthesis-direction",
+    "storyboarding",
+    "subtitles-generation",
+    "muse-api-integration"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Vietnamese Drama Muse Studio",
+        "shortDescription": "Sản xuất phim Drama Việt Nam bằng Muse AI",
+        "longDescription": "Hệ sinh thái tự động hóa sản xuất video Drama Recap: từ ý tưởng gốc, phân cảnh 3 hồi, chuỗi prompt Muse AI độc lập, giọng đọc MC Bắc/Nam đến file phụ đề SRT sẵn sàng dựng phim.",
+        "developerName": "Afanta Studio & Mr.Bit25",
+        "category": "Productivity",
+        "defaultPrompt": "BẮT ĐẦU — Hiển thị menu ý tưởng, thời lượng, giọng MC và chế độ âm thanh để sản xuất Drama Việt Nam bằng Muse AI."
+      }
+    }
+  }
+}

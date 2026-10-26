@@ -1,0 +1,25 @@
+{
+  "name": "api-muse-2026",
+  "version": "2.0.0",
+  "description": "API Gateway & Auto Token Extractor for Muse AI (OpenAI Compatible) with Web Dashboard and Vercel Serverless deployment",
+  "main": "server.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "start": "node server.js",
+    "test": "node tests/kaizen_verification.test.js",
+    "build": "echo 'Build complete'"
+  },
+  "keywords": [
+    "muse",
+    "muse-ai",
+    "openai-compatible",
+    "api-proxy",
+    "vercel",
+    "chat-completions",
+    "chrome-extension"
+  ],
+  "author": "Mr.Bit25",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
+}

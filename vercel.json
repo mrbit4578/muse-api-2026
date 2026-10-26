@@ -1,0 +1,34 @@
+{
+  "version": 2,
+  "name": "api-muse-2026",
+  "cleanUrls": true,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Credentials", "value": "true" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
+        { "key": "Access-Control-Allow-Headers", "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, x-muse-token, x-account-id" }
+      ]
+    }
+  ],
+  "rewrites": [
+    { "source": "/v1/chat/completions", "destination": "/api/v1/chat/completions" },
+    { "source": "/v1/images/generations", "destination": "/api/v1/images/generations" },
+    { "source": "/v1/models", "destination": "/api/v1/models" },
+    { "source": "/v1/videos", "destination": "/api/v1/videos" },
+    { "source": "/v1/videos/:id*", "destination": "/api/v1/videos?id=:id*" },
+    { "source": "/api/auth/login", "destination": "/api/auth/login" },
+    { "source": "/api/auth/extract-session", "destination": "/api/auth/extract-session" },
+    { "source": "/api/auth/status", "destination": "/api/auth/status" },
+    { "source": "/api/auth/keepalive", "destination": "/api/auth/keepalive" },
+    { "source": "/api/auth/mailtm-otp", "destination": "/api/auth/mailtm-otp" },
+    { "source": "/api/drama/generate", "destination": "/api/drama/generate" },
+    { "source": "/api/drama/image", "destination": "/api/drama/image" },
+    { "source": "/api/accounts", "destination": "/api/accounts" },
+    { "source": "/api/proxy-check", "destination": "/api/proxy-check" },
+    { "source": "/", "destination": "/public/index.html" },
+    { "source": "/((?!api|v1).*)", "destination": "/public/$1" }
+  ]
+}

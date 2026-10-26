@@ -1,0 +1,21 @@
+{
+  "name": "vietnamese-drama-muse",
+  "version": "5.2.0",
+  "description": "Vietnamese Cinematic Drama Recap Creator & Muse AI Prompt Studio Pro",
+  "main": "scripts/drama_generator.js",
+  "scripts": {
+    "start": "node studio/server.js",
+    "studio": "node studio/server.js",
+    "generate": "node scripts/drama_generator.js"
+  },
+  "keywords": [
+    "muse",
+    "drama-recap",
+    "vietnamese-drama",
+    "prompt-generator",
+    "screenplay",
+    "subtitles-srt"
+  ],
+  "author": "Afanta Studio & Mr.Bit25",
+  "license": "MIT"
+}

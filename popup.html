@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Muse 2026 Companion</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body class="license-ready">
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="title">
+        <span class="lock-icon">⚡</span>
+        <h2>API Muse 2026 Pro</h2>
+      </div>
+      <div class="header-actions">
+        <span class="pro-badge">PRO UNLOCKED</span>
+      </div>
+    </div>
+
+    <!-- Tab Nav -->
+    <div class="tab-nav">
+      <button class="tab-btn active" data-tab="tab-muse">⚡ Muse API</button>
+      <button class="tab-btn" data-tab="tab-proxy">🌐 Proxy Pro</button>
+      <button class="tab-btn" data-tab="tab-info">ℹ️ Thông tin</button>
+    </div>
+
+    <!-- TAB 1: MUSE AUTO EXTRACTOR -->
+    <div id="tab-muse" class="tab-content active">
+      <div class="muse-box">
+        <div class="muse-title">Auto Lấy API Token Muse</div>
+        <p class="muse-desc">Đăng nhập tài khoản trên tab <b>muse.ai</b>, sau đó nhấn nút bên dưới để tự động bắt Cookie & Token.</p>
+        
+        <button id="btnAutoGrabMuse" class="btn-muse">
+          <span>⚡ Auto Lấy API Muse từ trình duyệt</span>
+        </button>
+
+        <div id="museExtractResult" class="token-result-box" style="display: none;">
+          <div class="result-header">✅ Đã bắt thành công Token:</div>
+          <div class="token-field">
+            <label>hatch_sess:</label>
+            <input type="text" id="exHatchSess" readonly>
+          </div>
+          <div class="token-field">
+            <label>hatch_gw:</label>
+            <input type="text" id="exHatchGw" readonly>
+          </div>
+          <div class="token-actions">
+            <button id="btnCopyTokens" class="mini-btn">Copy Cookie String</button>
+            <button id="btnOpenWebDashboard" class="mini-btn primary">Mở Web App Vercel ↗</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: PROXY PRO MANAGER -->
+    <div id="tab-proxy" class="tab-content">
+      <div class="control-center">
+        <label class="switch large">
+          <input type="checkbox" id="toggleProxy">
+          <span class="slider round"></span>
+        </label>
+        <div class="control-label">BẬT / TẮT PROXY</div>
+      </div>
+
+      <div id="statusBox" class="status-box disconnected">
+        <div class="status-icon"></div>
+        <div class="status-content">
+          <div class="status-title" id="statusTitle">Đã tắt Proxy</div>
+          <div class="status-desc" id="statusDesc">Sẵn sàng kết nối</div>
+        </div>
+      </div>
+
+      <div class="security-option">
+        <label class="checkbox-container">
+          <input type="checkbox" id="blockDirect">
+          <span class="checkmark"></span>
+          <span class="label-text">🛡️ Kill Switch (Chặn mạng gốc)</span>
+        </label>
+      </div>
+
+      <div class="form-container" id="formContainer">
+        <div class="form-row">
+          <div class="form-group half">
+            <label>Giao thức</label>
+            <select id="proxyType">
+              <option value="socks5">SOCKS5</option>
+              <option value="http">HTTP</option>
+              <option value="https">HTTPS</option>
+              <option value="socks4">SOCKS4</option>
+            </select>
+          </div>
+          <div class="form-group half">
+            <label>Cổng (Port)</label>
+            <input type="number" id="proxyPort" placeholder="8080" value="8080">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Host / IP</label>
+          <input type="text" id="proxyHost" placeholder="127.0.0.1" value="127.0.0.1">
+        </div>
+
+        <div class="divider-text">Authentication (Tùy chọn)</div>
+
+        <div class="form-group">
+          <input type="text" id="proxyUsername" placeholder="Username">
+        </div>
+        <div class="form-group">
+          <input type="password" id="proxyPassword" placeholder="Password">
+        </div>
+
+        <button id="btnSave" class="save-btn">Lưu cấu hình</button>
+      </div>
+    </div>
+
+    <!-- TAB 3: INFO & UNLOCKED STATUS -->
+    <div id="tab-info" class="tab-content">
+      <div class="info-card">
+        <div class="info-item">
+          <span>Phiên bản:</span>
+          <strong>v5.0.0 (API Muse 2026 Edition)</strong>
+        </div>
+        <div class="info-item">
+          <span>Trạng thái:</span>
+          <strong style="color: #10B981;">Đã kích hoạt vĩnh viễn (Pro Active)</strong>
+        </div>
+        <div class="info-item">
+          <span>Anti-debug bẫy:</span>
+          <strong style="color: #10B981;">Đã gỡ bỏ 100%</strong>
+        </div>
+        <div class="info-item">
+          <span>Hạn dùng:</span>
+          <strong>Không thời hạn (Lifetime)</strong>
+        </div>
+        <div class="info-item">
+          <span>Tương thích:</span>
+          <strong>Vercel Serverless & Chrome MV3</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

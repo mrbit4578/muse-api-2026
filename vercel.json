@@ -2,6 +2,11 @@
   "version": 2,
   "name": "api-muse-2026",
   "cleanUrls": true,
+  "functions": {
+    "server.js": {
+      "includeFiles": "public/**"
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",

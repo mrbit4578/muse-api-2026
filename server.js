@@ -17,145 +17,143 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon'
 };
 
+// Static explicit requires so Vercel NFT (Node File Trace) bundles all routes
+const API_ROUTES = {
+  '/api': require('./api/index'),
+  '/api/': require('./api/index'),
+  '/api/auth/login': require('./api/auth/login'),
+  '/api/auth/extract-session': require('./api/auth/extract-session'),
+  '/api/auth/status': require('./api/auth/status'),
+  '/api/auth/keepalive': require('./api/auth/keepalive'),
+  '/api/auth/mailtm-otp': require('./api/auth/mailtm-otp'),
+  '/api/drama/generate': require('./api/drama/generate'),
+  '/api/drama/image': require('./api/drama/image'),
+  '/api/accounts': require('./api/accounts'),
+  '/api/proxy-check': require('./api/proxy-check'),
+  '/v1/chat/completions': require('./api/v1/chat/completions'),
+  '/v1/images/generations': require('./api/v1/images/generations'),
+  '/v1/models': require('./api/v1/models'),
+  '/v1/videos': require('./api/v1/videos')
+};
+
 function setCors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-muse-token, x-account-id');
 }
 
-async function handleApiRoute(req, res, handlerPath) {
+// In-memory static file cache for high-speed delivery
+const staticCache = new Map();
+function getStaticFile(filePath) {
+  if (staticCache.has(filePath)) return staticCache.get(filePath);
   try {
-    delete require.cache[require.resolve(handlerPath)];
-    const handler = require(handlerPath);
-    return await handler(req, res);
-  } catch (err) {
-    console.error('API Error:', err);
-    res.statusCode = 500;
-    res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({ error: { message: err.message, type: 'internal_server_error' } }));
+    if (fs.existsSync(filePath)) {
+      const buf = fs.readFileSync(filePath);
+      staticCache.set(filePath, buf);
+      return buf;
+    }
+  } catch (e) {
+    console.warn('Read file error:', e.message);
   }
+  return null;
 }
 
-// Main Universal Request Handler (Works for both Standalone HTTP & Vercel Serverless Function)
+// Main Universal Request Handler (Vercel Serverless Function & Standalone HTTP)
 async function requestHandler(req, res) {
-  setCors(res);
+  try {
+    setCors(res);
 
-  if (req.method === 'OPTIONS') {
-    res.statusCode = 204;
-    res.end();
-    return;
-  }
-
-  const parsedUrl = url.parse(req.url || '/', true);
-  const pathname = parsedUrl.pathname || '/';
-
-  // Add query to req for Vercel compatibility
-  req.query = req.query || parsedUrl.query || {};
-
-  // Parse body if POST/PUT and not already parsed
-  if (['POST', 'PUT', 'PATCH'].includes(req.method) && !req.body) {
-    const buffers = [];
-    for await (const chunk of req) {
-      buffers.push(chunk);
+    if (req.method === 'OPTIONS') {
+      res.statusCode = 204;
+      return res.end();
     }
-    const rawBody = Buffer.concat(buffers).toString();
+
+    const parsedUrl = url.parse(req.url || '/', true);
+    const pathname = parsedUrl.pathname || '/';
+
+    // Safely assign query without throwing getter TypeError on Vercel
     try {
-      req.body = rawBody ? JSON.parse(rawBody) : {};
-    } catch {
-      req.body = rawBody;
+      if (!req.query) {
+        req.query = parsedUrl.query || {};
+      }
+    } catch {}
+
+    // Parse body if POST/PUT and not already parsed
+    if (['POST', 'PUT', 'PATCH'].includes(req.method) && !req.body) {
+      try {
+        const buffers = [];
+        for await (const chunk of req) {
+          buffers.push(chunk);
+        }
+        const rawBody = Buffer.concat(buffers).toString();
+        try {
+          req.body = rawBody ? JSON.parse(rawBody) : {};
+        } catch {
+          req.body = rawBody;
+        }
+      } catch {}
     }
-  }
 
-  // Helper response methods for Vercel compatibility
-  if (!res.status) {
-    res.status = function(code) {
-      this.statusCode = code;
-      return this;
-    };
-  }
-  if (!res.json) {
-    res.json = function(data) {
-      this.setHeader('Content-Type', 'application/json');
-      this.end(JSON.stringify(data));
-    };
-  }
-  if (!res.send) {
-    res.send = function(data) {
-      this.end(data);
-    };
-  }
+    // Helper response methods for Vercel / Express compatibility
+    if (!res.status) {
+      res.status = function(code) {
+        this.statusCode = code;
+        return this;
+      };
+    }
+    if (!res.json) {
+      res.json = function(data) {
+        this.setHeader('Content-Type', 'application/json');
+        this.end(JSON.stringify(data));
+      };
+    }
+    if (!res.send) {
+      res.send = function(data) {
+        this.end(data);
+      };
+    }
 
-  // 1. API Route mapping
-  if (pathname === '/api' || pathname === '/api/') {
-    return handleApiRoute(req, res, './api/index');
-  }
-  if (pathname === '/v1/chat/completions') {
-    return handleApiRoute(req, res, './api/v1/chat/completions');
-  }
-  if (pathname === '/v1/images/generations') {
-    return handleApiRoute(req, res, './api/v1/images/generations');
-  }
-  if (pathname === '/v1/models') {
-    return handleApiRoute(req, res, './api/v1/models');
-  }
-  if (pathname === '/v1/videos' || pathname.startsWith('/v1/videos/')) {
-    return handleApiRoute(req, res, './api/v1/videos');
-  }
-  if (pathname === '/api/auth/login') {
-    return handleApiRoute(req, res, './api/auth/login');
-  }
-  if (pathname === '/api/auth/extract-session') {
-    return handleApiRoute(req, res, './api/auth/extract-session');
-  }
-  if (pathname === '/api/auth/status') {
-    return handleApiRoute(req, res, './api/auth/status');
-  }
-  if (pathname === '/api/auth/keepalive') {
-    return handleApiRoute(req, res, './api/auth/keepalive');
-  }
-  if (pathname === '/api/auth/mailtm-otp') {
-    return handleApiRoute(req, res, './api/auth/mailtm-otp');
-  }
-  if (pathname === '/api/drama/generate') {
-    return handleApiRoute(req, res, './api/drama/generate');
-  }
-  if (pathname === '/api/drama/image') {
-    return handleApiRoute(req, res, './api/drama/image');
-  }
-  if (pathname === '/api/accounts') {
-    return handleApiRoute(req, res, './api/accounts');
-  }
-  if (pathname === '/api/proxy-check') {
-    return handleApiRoute(req, res, './api/proxy-check');
-  }
+    // 1. Direct API Route Matching
+    if (API_ROUTES[pathname]) {
+      return await API_ROUTES[pathname](req, res);
+    }
+    if (pathname.startsWith('/v1/videos/')) {
+      return await API_ROUTES['/v1/videos'](req, res);
+    }
 
-  // 2. Serve static files from public/ or dist/
-  const cleanPath = pathname === '/' ? 'index.html' : pathname.replace(/^\//, '');
-  let filePath = path.join(__dirname, 'public', cleanPath);
-  if (!fs.existsSync(filePath)) {
-    filePath = path.join(__dirname, 'dist', cleanPath);
+    // 2. Serve static files from public/ or dist/
+    const cleanPath = pathname === '/' ? 'index.html' : pathname.replace(/^\//, '');
+    let fileBuf = getStaticFile(path.join(__dirname, 'public', cleanPath)) ||
+                  getStaticFile(path.join(__dirname, 'dist', cleanPath));
+
+    if (fileBuf) {
+      const ext = path.extname(cleanPath).toLowerCase();
+      res.setHeader('Content-Type', MIME_TYPES[ext] || 'application/octet-stream');
+      return res.end(fileBuf);
+    }
+
+    // 3. Fallback to index.html for SPA client-side routing
+    const indexBuf = getStaticFile(path.join(__dirname, 'public', 'index.html')) ||
+                     getStaticFile(path.join(__dirname, 'dist', 'index.html'));
+
+    if (indexBuf) {
+      res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+      return res.end(indexBuf);
+    }
+
+    res.statusCode = 404;
+    res.end('Not Found');
+  } catch (err) {
+    console.error('[Serverless Request Handler Error]', err);
+    res.statusCode = 500;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({
+      error: {
+        message: err.message,
+        type: 'internal_server_error'
+      }
+    }));
   }
-
-  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-    const ext = path.extname(filePath).toLowerCase();
-    res.setHeader('Content-Type', MIME_TYPES[ext] || 'application/octet-stream');
-    const fileContent = fs.readFileSync(filePath);
-    return res.end(fileContent);
-  }
-
-  // 3. Fallback to index.html for SPA client-side routing
-  const fallbackIndex = fs.existsSync(path.join(__dirname, 'public', 'index.html'))
-    ? path.join(__dirname, 'public', 'index.html')
-    : path.join(__dirname, 'dist', 'index.html');
-
-  if (fs.existsSync(fallbackIndex)) {
-    res.setHeader('Content-Type', 'text/html; charset=UTF-8');
-    const htmlContent = fs.readFileSync(fallbackIndex);
-    return res.end(htmlContent);
-  }
-
-  res.statusCode = 404;
-  res.end('Not Found');
 }
 
 // Standalone server for local development (node server.js / npm start)

@@ -157,16 +157,17 @@ async function requestHandler(req, res) {
 }
 
 // Standalone server for local development and Vercel Bridge
+// Standalone server for local development
 const server = http.createServer(requestHandler);
 
-// Call server.listen unconditionally:
-// 1. Locally, starts HTTP listening on PORT.
-// 2. On Vercel (@vercel/node), the bridge intercepts listen() to register this server instance.
-server.listen(PORT, () => {
-  console.log(`\n🚀 API Muse 2026 Server running at http://localhost:${PORT}`);
-  console.log(`🌐 Web App Dashboard: http://localhost:${PORT}`);
-  console.log(`📡 OpenAI Base URL:    http://localhost:${PORT}/v1\n`);
-});
+// Only listen when running locally, not inside Vercel Serverless environment
+if (!process.env.VERCEL) {
+  server.listen(PORT, () => {
+    console.log(`\n🚀 API Muse 2026 Server running at http://localhost:${PORT}`);
+    console.log(`🌐 Web App Dashboard: http://localhost:${PORT}`);
+    console.log(`📡 OpenAI Base URL:    http://localhost:${PORT}/v1\n`);
+  });
+}
 
-// Export server instance for Vercel Node bridge
-module.exports = server;
+// Export callable requestHandler for Vercel @vercel/node runtime
+module.exports = requestHandler;

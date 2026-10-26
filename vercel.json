@@ -1,28 +1,19 @@
 {
   "version": 2,
   "name": "api-muse-2026",
-  "cleanUrls": true,
-  "functions": {
-    "server.js": {
-      "includeFiles": "public/**"
-    }
-  },
-  "headers": [
+  "builds": [
     {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "Access-Control-Allow-Credentials", "value": "true" },
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
-        { "key": "Access-Control-Allow-Headers", "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, x-muse-token, x-account-id" }
-      ]
+      "src": "server.js",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["public/**", "dist/**"]
+      }
     }
   ],
-  "rewrites": [
-    { "source": "/v1/chat/completions", "destination": "/api/v1/chat/completions" },
-    { "source": "/v1/images/generations", "destination": "/api/v1/images/generations" },
-    { "source": "/v1/models", "destination": "/api/v1/models" },
-    { "source": "/v1/videos", "destination": "/api/v1/videos" },
-    { "source": "/v1/videos/:id*", "destination": "/api/v1/videos?id=:id*" }
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "server.js"
+    }
   ]
 }

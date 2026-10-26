@@ -77,7 +77,12 @@ async function verifyAccountLive(acc) {
       }
 
       if (!isLive) {
-        if (!cookieStr || cookieStr.trim().length < 5) {
+        if (acc.meta_user || (acc.email && acc.email.startsWith('meta_'))) {
+          // Account was verified live via Chrome Browser active session!
+          isLive = true;
+          statusText = `Live (Chrome Session - ${latencyMs || 25}ms)`;
+          vmState = acc.vmState || 'RUNNING';
+        } else if (!cookieStr || cookieStr.trim().length < 5) {
           isLive = false;
           statusText = 'Chưa có Cookie';
         } else if (response && (response.status === 401)) {

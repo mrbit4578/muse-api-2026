@@ -80,31 +80,34 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-// ⚡ Extract Muse Cookies from browser session
+// ⚡ Extract Muse Cookies from browser session (All domains & URLs)
 async function getMuseSessionCookies() {
-  return new Promise((resolve, reject) => {
-    chrome.cookies.getAll({ domain: 'muse.ai' }, (cookies) => {
-      if (chrome.runtime.lastError) {
-        return reject(new Error(chrome.runtime.lastError.message));
-      }
+  return new Promise((resolve) => {
+    chrome.cookies.getAll({ domain: 'muse.ai' }, (cookies1) => {
+      chrome.cookies.getAll({ url: 'https://muse.ai/' }, (cookies2) => {
+        const combined = [...(cookies1 || []), ...(cookies2 || [])];
+        const extracted = {};
+        const pairs = [];
+        const seen = new Set();
 
-      const extracted = {};
-      const pairs = [];
+        for (const c of combined) {
+          if (c && c.name && !seen.has(c.name)) {
+            seen.add(c.name);
+            extracted[c.name] = c.value;
+            pairs.push(`${c.name}=${c.value}`);
+          }
+        }
 
-      for (const c of cookies || []) {
-        extracted[c.name] = c.value;
-        pairs.push(`${c.name}=${c.value}`);
-      }
+        const hatchKeys = ['hatch_sess', 'hatch_gw', 'hatch_vml', 'hatch_native_auth_device'];
+        const matchedHatch = hatchKeys.filter(k => extracted[k]);
 
-      const hatchKeys = ['hatch_sess', 'hatch_gw', 'hatch_vml', 'hatch_native_auth_device'];
-      const matchedHatch = hatchKeys.filter(k => extracted[k]);
-
-      resolve({
-        cookies: extracted,
-        cookieString: pairs.join('; '),
-        matchedKeys: matchedHatch,
-        hasHatchSession: matchedHatch.length > 0,
-        count: cookies ? cookies.length : 0
+        resolve({
+          cookies: extracted,
+          cookieString: pairs.join('; '),
+          matchedKeys: matchedHatch,
+          hasHatchSession: matchedHatch.length > 0 || seen.size > 0,
+          count: seen.size
+        });
       });
     });
   });

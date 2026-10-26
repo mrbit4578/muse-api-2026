@@ -82,6 +82,37 @@
     <main class="main-content">
       <!-- TAB 1: LOGIN & AUTO GET API -->
       <section id="tab-login" class="tab-pane active">
+        <!-- Chrome Auto-Connect Banner -->
+        <div class="glass-card chrome-auto-connect-banner" style="margin-bottom: 20px; border: 1px solid rgba(56, 189, 248, 0.35); background: linear-gradient(135deg, rgba(14, 165, 233, 0.12) 0%, rgba(99, 102, 241, 0.08) 100%);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%); display: flex; align-items: center; justify-content: center; font-size: 22px; box-shadow: 0 0 16px rgba(14, 165, 233, 0.4);">
+                🌐
+              </div>
+              <div>
+                <h3 style="font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+                  Tự động kết nối qua trình duyệt Chrome
+                  <span id="chromeStatusPill" class="metric-pill" style="font-size: 11px; padding: 2px 8px; border-color: rgba(56, 189, 248, 0.3);">
+                    <span class="dot live" style="background: #38bdf8;"></span>
+                    <span id="chromeStatusText">Sẵn sàng kết nối Muse</span>
+                  </span>
+                </h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin: 0;">
+                  Nếu bạn đang mở tab <code>https://muse.ai</code> trong Chrome, hệ thống sẽ tự động bắt phiên tài khoản thật và tạo API Key Live ngay lập tức.
+                </p>
+              </div>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="btn-primary" onclick="triggerChromeAutoConnect()" id="btnAutoConnectChrome" style="background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%); font-weight: 700; padding: 10px 18px; box-shadow: 0 4px 14px rgba(14, 165, 233, 0.4);">
+                ⚡ Tự động kết nối ngay
+              </button>
+              <button type="button" class="btn-secondary" onclick="openDevToolsSnippetModal()" style="font-size: 12px;">
+                📋 Dán 1-Click Console
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div class="grid-2col">
           <!-- Login Box -->
           <div class="glass-card">
@@ -686,6 +717,9 @@
                 <span class="dot live"></span>
                 <span>Live: <strong id="liveAccCount" style="color: #10b981;">0</strong> / <span id="totalAccCount">0</span></span>
               </span>
+              <button class="btn-primary" onclick="triggerChromeAutoConnect()" style="background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); font-weight: 600;">
+                🌐 Tự động kết nối Chrome
+              </button>
               <button class="btn-primary" id="btnCheckAllLive" onclick="checkAllAccountsLive()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); font-weight: 600;">
                 ⚡ Kiểm tra tất cả Live
               </button>
@@ -757,6 +791,43 @@
     <footer class="app-footer">
       <p>© 2026 <strong>API Muse 2026</strong> · Thiết kế và tối ưu bởi <strong>Mr.Bit25</strong> · Vercel Ready ⚡</p>
     </footer>
+  </div>
+
+  <!-- Modal: DevTools Console 1-Click Snippet -->
+  <div id="modalDevToolsSnippet" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 10000; align-items: center; justify-content: center; padding: 20px;">
+    <div class="glass-card" style="max-width: 620px; width: 100%; border: 1px solid rgba(56, 189, 248, 0.4); box-shadow: 0 16px 40px rgba(0,0,0,0.85); max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="font-size: 18px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;">
+          ⚡ Kết nối tài khoản Muse trực tiếp từ Trình duyệt Chrome
+        </h3>
+        <button type="button" class="btn-secondary" onclick="closeDevToolsSnippetModal()" style="padding: 4px 10px; font-size: 14px;">✕</button>
+      </div>
+
+      <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 14px;">
+        Vì bạn đang mở sẵn tab <strong>https://muse.ai</strong> (kèm DevTools F12 như trong hình), đây là cách nhanh nhất để kết nối tài khoản thật mà <strong>không cần cài bất kỳ tiện ích nào</strong>:
+      </p>
+
+      <div style="background: rgba(14, 165, 233, 0.1); border-left: 3px solid #38bdf8; padding: 10px 14px; border-radius: 6px; margin-bottom: 16px;">
+        <div style="font-size: 12px; color: #e2e8f0; line-height: 1.6;">
+          <strong>Hướng dẫn 3 bước:</strong>
+          <br>1. Bấm nút <strong>"📋 Sao chép mã 1-Click"</strong> bên dưới.
+          <br>2. Chuyển sang tab <strong>muse.ai</strong> (nơi bạn đang mở F12 DevTools).
+          <br>3. Bấm vào tab <strong>Console</strong>, dán mã vào và gõ <strong>Enter</strong>.
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label style="font-size: 12px; font-weight: 600; color: #38bdf8;">Đoạn mã tự động kết nối (Chạy tại Console của tab muse.ai):</label>
+        <textarea id="consoleSnippetCode" rows="4" readonly style="width: 100%; font-family: var(--font-mono); font-size: 11px; background: rgba(0,0,0,0.7); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); padding: 12px; border-radius: 8px; resize: none;"></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" class="btn-secondary" onclick="closeDevToolsSnippetModal()">Đóng</button>
+        <button type="button" class="btn-primary" onclick="copyConsoleSnippet()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); font-weight: 700; padding: 8px 16px;">
+          📋 Sao chép đoạn mã 1-Click
+        </button>
+      </div>
+    </div>
   </div>
 
   <script src="app.js"></script>

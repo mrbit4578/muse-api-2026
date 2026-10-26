@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadAccountsList();
   updateContextHealthMonitor();
   updateDecodingLabels();
+  initChromeAutoConnector();
 });
 
 // 1. Tab Navigation
@@ -598,6 +599,145 @@ function useAccountAsActive(apiKey) {
   document.getElementById('displayApiKey').value = apiKey;
   updateIntegrationCodes(apiKey);
   showNotice('Đã chuyển sang dùng API Key này!', 'success');
+}
+
+// ========================================================
+// 🌐 CHROME AUTO-CONNECT & DIRECT BROWSER BRIDGE
+// ========================================================
+let isExtensionDetected = false;
+let pendingChromeSyncResolve = null;
+
+function initChromeAutoConnector() {
+  const statusText = document.getElementById('chromeStatusText');
+
+  if (document.documentElement.getAttribute('data-muse-extension-installed') === 'true' ||
+      window.sessionStorage.getItem('muse_extension_installed') === 'true') {
+    isExtensionDetected = true;
+    if (statusText) statusText.textContent = '🟢 Tiện ích Chrome sẵn sàng';
+  }
+
+  // Listen for window messages from extension content script
+  window.addEventListener('message', async (event) => {
+    if (!event.data || event.source !== window) return;
+
+    if (event.data.type === 'MUSE_EXTENSION_PING') {
+      isExtensionDetected = true;
+      if (statusText) statusText.textContent = '🟢 Tiện ích Chrome kết nối';
+    }
+
+    if (event.data.type === 'MUSE_CHROME_AUTO_DETECTED') {
+      isExtensionDetected = true;
+      if (statusText) statusText.textContent = '🟢 Phát hiện phiên Muse đang mở';
+      const cookiesData = event.data.cookies || event.data.data?.cookies || {};
+      const cookieStr = event.data.cookieString || event.data.data?.cookieString || '';
+      
+      if (!currentApiKey || currentApiKey.includes('your-api-key') || !localStorage.getItem('muse_api_key')) {
+        await handleChromeSessionData({ cookieString: cookieStr, cookies: cookiesData });
+      }
+    }
+
+    if (event.data.type === 'MUSE_CHROME_AUTO_SYNC_RESPONSE') {
+      isExtensionDetected = true;
+      if (pendingChromeSyncResolve) {
+        pendingChromeSyncResolve(event.data);
+        pendingChromeSyncResolve = null;
+      }
+    }
+  });
+
+  window.postMessage({ type: 'MUSE_EXTENSION_QUERY' }, '*');
+}
+
+async function triggerChromeAutoConnect() {
+  const btn = document.getElementById('btnAutoConnectChrome');
+  const originalText = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Đang quét trình duyệt...';
+  }
+  showNotice('Đang dò tìm phiên Muse AI trên trình duyệt Chrome...', 'info');
+
+  let syncResult = null;
+  try {
+    const promise = new Promise((resolve) => {
+      pendingChromeSyncResolve = resolve;
+      window.postMessage({ type: 'MUSE_CHROME_AUTO_SYNC_REQUEST' }, '*');
+      setTimeout(() => {
+        if (pendingChromeSyncResolve === resolve) {
+          pendingChromeSyncResolve = null;
+          resolve({ success: false, timeout: true });
+        }
+      }, 1400);
+    });
+
+    syncResult = await promise;
+  } catch (e) {
+    syncResult = { success: false, error: e.message };
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }
+  }
+
+  if (syncResult && syncResult.success && syncResult.cookieString) {
+    await handleChromeSessionData(syncResult);
+    showNotice('🎉 Đã tự động kết nối tài khoản Muse từ Chrome thành công!', 'success');
+  } else {
+    // Open the 1-Click DevTools Console Modal
+    openDevToolsSnippetModal();
+  }
+}
+
+async function handleChromeSessionData(data) {
+  try {
+    const res = await fetch('/api/auth/extract-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cookieString: data.cookieString,
+        cookies: data.cookies,
+        email: data.email || 'chrome_user@muse.ai'
+      })
+    });
+    const result = await res.json();
+    if (result.success) {
+      handleAuthSuccess(result);
+      const statusText = document.getElementById('chromeStatusText');
+      if (statusText) statusText.textContent = '🟢 Đã kết nối phiên thật';
+      showNotice(result.message || 'Đã kích hoạt API Key từ Chrome!', 'success');
+    }
+  } catch (err) {
+    console.warn('Error handling chrome session data:', err);
+  }
+}
+
+function openDevToolsSnippetModal() {
+  const modal = document.getElementById('modalDevToolsSnippet');
+  const codeArea = document.getElementById('consoleSnippetCode');
+  if (modal) modal.style.display = 'flex';
+
+  const gatewayUrl = window.location.origin;
+  const snippet = `(async()=>{try{const s=await(await fetch('/api/session?vm_state=live')).json().catch(()=>({}));const f=await(await fetch('/api/falco')).json().catch(()=>({}));const uid=f?.user?.identifier||('user_'+Date.now().toString(36));const res=await fetch('${gatewayUrl}/api/auth/extract-session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cookieString:document.cookie,email:f?.user?.email||\`meta_\${uid}@muse.ai\`,meta_user:f?.user,quota:s?.quota||{total:1000000,used:20000,remaining:980000},plan:'Pro / Unlimited',vm_state:s?.vm_state||'RUNNING'})});const d=await res.json();if(d.success){alert('🎉 KẾT NỐI THÀNH CÔNG VỚI API MUSE 2026!\\nAPI Key: '+d.apiKey+'\\n\\nChuyển về tab API Muse 2026 để sử dụng ngay.');}else{alert('Lỗi: '+(d.error||'Không thể kết nối'));}}catch(e){alert('Lỗi: '+e.message);}})();`;
+
+  if (codeArea) codeArea.value = snippet;
+}
+
+function closeDevToolsSnippetModal() {
+  const modal = document.getElementById('modalDevToolsSnippet');
+  if (modal) modal.style.display = 'none';
+}
+
+function copyConsoleSnippet() {
+  const codeArea = document.getElementById('consoleSnippetCode');
+  if (!codeArea) return;
+  codeArea.select();
+  navigator.clipboard.writeText(codeArea.value).then(() => {
+    showNotice('📋 Đã sao chép mã! Hãy chuyển sang tab muse.ai -> Console -> Paste và gõ Enter.', 'success');
+  }).catch(() => {
+    document.execCommand('copy');
+    showNotice('📋 Đã sao chép mã!', 'success');
+  });
 }
 
 // ========================================================

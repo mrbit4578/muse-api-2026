@@ -298,6 +298,27 @@ async function runTests() {
     assert.strictEqual(resData.body.success, true);
   });
 
+  // TEST 16: Chrome Auto-Connect Session Extraction
+  await test('api/auth/extract-session handles Chrome auto-connect session with Meta user ID', async () => {
+    const extractHandler = require('../api/auth/extract-session');
+    const { req, res, resData } = mockReqRes({
+      method: 'POST',
+      body: {
+        cookieString: 'datr=sample123; hatch_sess=sess_abc; hatch_vml=vml_def',
+        meta_user: { kind: 'user', identifier: '1401136416407282' },
+        quota: { total: 1000000, used: 23000, remaining: 977000 },
+        vm_state: 'RUNNING'
+      }
+    });
+    await extractHandler(req, res);
+    assert.strictEqual(resData.statusCode, 200);
+    assert.strictEqual(resData.body.success, true);
+    assert(resData.body.apiKey.startsWith('sk-muse-'));
+    assert.strictEqual(resData.body.account.email, 'meta_1401136416407282@muse.ai');
+    assert.strictEqual(resData.body.account.quota.remaining, 977000);
+    assert.strictEqual(resData.body.account.vmState, 'RUNNING');
+  });
+
   // Summary
   console.log('\n========================================================');
   console.log(`🏁 VERIFICATION COMPLETE: ${passed} PASSED, ${failed} FAILED`);

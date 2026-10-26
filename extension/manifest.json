@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "API Muse 2026 Companion & Proxy Pro",
-  "version": "5.0.0",
+  "version": "5.2.0",
   "description": "Tự động trích xuất API Token Muse AI & Quản lý Proxy bảo mật cao",
   "permissions": [
     "proxy",
@@ -15,10 +15,31 @@
     "<all_urls>",
     "https://*.muse.ai/*",
     "https://auth.muse.ai/*",
-    "https://gateway.meta.ai/*"
+    "https://gateway.meta.ai/*",
+    "https://muse-api-2026.vercel.app/*"
   ],
   "background": {
     "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://muse-api-2026.vercel.app/*",
+        "https://*.vercel.app/*",
+        "http://localhost:*/*",
+        "https://muse.ai/*",
+        "https://*.muse.ai/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "externally_connectable": {
+    "matches": [
+      "https://muse-api-2026.vercel.app/*",
+      "https://*.vercel.app/*",
+      "http://localhost:*/*"
+    ]
   },
   "action": {
     "default_popup": "popup.html",

@@ -1,8 +1,16 @@
 # Files ignored by Vercel deployment
 backends/
 extension/
-icons/
+plugins/
 tests/
+icons/
+server.js
+license.js
+background.js
+popup.css
+popup.html
+popup.js
+manifest.json
 *.test.js
 .git/
 .env

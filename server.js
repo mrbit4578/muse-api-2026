@@ -146,8 +146,12 @@ const server = http.createServer(async (req, res) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`\n🚀 API Muse 2026 Server running at http://localhost:${PORT}`);
-  console.log(`🌐 Web App Dashboard: http://localhost:${PORT}`);
-  console.log(`📡 OpenAI Base URL:    http://localhost:${PORT}/v1\n`);
-});
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`\n🚀 API Muse 2026 Server running at http://localhost:${PORT}`);
+    console.log(`🌐 Web App Dashboard: http://localhost:${PORT}`);
+    console.log(`📡 OpenAI Base URL:    http://localhost:${PORT}/v1\n`);
+  });
+}
+
+module.exports = server;

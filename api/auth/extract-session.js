@@ -71,8 +71,25 @@ module.exports = async function handler(req, res) {
     }
 
     const cleanEmail = (meta_user?.identifier ? `meta_${meta_user.identifier}@muse.ai` : email).trim().toLowerCase();
-    const apiKey = 'sk-muse-' + crypto.randomBytes(24).toString('hex');
-    const accountId = 'acc_' + crypto.randomBytes(6).toString('hex');
+
+    // Deterministic API Key derivation: Same account ALWAYS gets the exact identical API key!
+    const emailHash = crypto.createHash('sha256').update('muse_deterministic_salt_v2_' + cleanEmail).digest('hex').slice(0, 36);
+    const deterministicKey = 'sk-muse-' + emailHash;
+    const deterministicId = 'acc_' + emailHash.slice(0, 10);
+
+    // Check if account already exists to preserve status/quota
+    let existing = null;
+    for (const [k, acc] of global.__MUSE_ACCOUNTS.entries()) {
+      if (acc.email && acc.email.toLowerCase() === cleanEmail) {
+        existing = acc;
+        break;
+      }
+    }
+
+    // Always enforce the deterministic key for meta_* accounts and accounts without custom keys
+    const isMeta = cleanEmail.startsWith('meta_');
+    const apiKey = isMeta ? deterministicKey : (existing?.apiKey || req.body?.apiKey || deterministicKey);
+    const accountId = isMeta ? deterministicId : (existing?.id || req.body?.id || deterministicId);
 
     const accountRecord = {
       id: accountId,
@@ -81,9 +98,9 @@ module.exports = async function handler(req, res) {
       cookies: parsedCookies,
       cookieString: cookieString || Object.entries(parsedCookies).map(([k, v]) => `${k}=${v}`).join('; '),
       status: 'Live (Trình duyệt Chrome)',
-      plan: plan || 'Pro / Unlimited',
-      vmState: vm_state || 'RUNNING',
-      quota: quota || {
+      plan: plan || existing?.plan || 'Pro / Unlimited',
+      vmState: vm_state || existing?.vmState || 'RUNNING',
+      quota: quota || existing?.quota || {
         total: 1000000,
         used: 20000,
         remaining: 980000

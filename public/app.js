@@ -5,6 +5,14 @@ let chatHistory = [];
 let isGenerating = false;
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Check for URL query params: ?activated_key=sk-muse-...
+  const urlParams = new URLSearchParams(window.location.search);
+  const activatedKey = urlParams.get('activated_key');
+  if (activatedKey && activatedKey.startsWith('sk-muse-')) {
+    syncActiveApiKeyEverywhere(activatedKey);
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+
   initTabs();
   initAuthModeToggles();
   initForms();
@@ -38,6 +46,13 @@ function switchTab(tabId) {
 
   if (tabId === 'tab-accounts') {
     loadAccountsList();
+  }
+  if (tabId === 'tab-drama') {
+    const dramaKeyEl = document.getElementById('dramaBoundApiKey');
+    if (dramaKeyEl && currentApiKey) {
+      dramaKeyEl.textContent = `${currentApiKey.slice(0, 14)}...`;
+      dramaKeyEl.title = currentApiKey;
+    }
   }
 }
 
@@ -372,14 +387,14 @@ async function loadAccountsList() {
   const allAccounts = Array.from(mergedMap.values());
   saveLocalAccounts(allAccounts); // Prune duplicates from localStorage
 
-  // Auto-activate live account if none is active
-  const liveAcc = allAccounts.find(a => (a.isLive || a.email?.startsWith('meta_') || (a.status && a.status.includes('Live'))));
-  if (liveAcc && (!currentApiKey || !localStorage.getItem('muse_api_key'))) {
-    currentApiKey = liveAcc.apiKey;
-    localStorage.setItem('muse_api_key', liveAcc.apiKey);
-    const displayKey = document.getElementById('displayApiKey');
-    if (displayKey) displayKey.value = liveAcc.apiKey;
-    updateIntegrationCodes(liveAcc.apiKey);
+  // Auto-activate live account (prefer live meta_* from Chrome session)
+  const liveMetaAcc = allAccounts.find(a => (a.isLive || a.email?.startsWith('meta_') || (a.status && a.status.includes('Live'))));
+  const activeAcc = (liveMetaAcc && (liveMetaAcc.isLive || liveMetaAcc.email?.startsWith('meta_'))) 
+    ? liveMetaAcc 
+    : (allAccounts.find(a => a.apiKey === currentApiKey) || liveMetaAcc || allAccounts[0]);
+
+  if (activeAcc && activeAcc.apiKey) {
+    syncActiveApiKeyEverywhere(activeAcc.apiKey, activeAcc);
   }
 
   // Background sync any missing accounts to serverless backend
@@ -408,16 +423,23 @@ async function loadAccountsList() {
   }
 
   tbody.innerHTML = allAccounts.map(acc => {
+    const isActive = (acc.apiKey && acc.apiKey === currentApiKey);
     const apiKeyPreview = acc.apiKeyPreview || (acc.apiKey ? `${acc.apiKey.slice(0, 10)}...${acc.apiKey.slice(-4)}` : 'Chưa có key');
     const remainingQuota = acc.quota ? Number(acc.quota.remaining).toLocaleString() : '1,000,000';
     const statusHtml = renderAccountStatusBadge(acc);
     const lastCheckedHtml = formatLastChecked(acc.lastChecked);
+    const rowStyle = isActive ? 'background: rgba(16, 185, 129, 0.08); outline: 1px solid rgba(16, 185, 129, 0.35);' : '';
 
     return `
-      <tr id="acc-row-${acc.id}">
-        <td><strong>${acc.email}</strong></td>
+      <tr id="acc-row-${acc.id}" style="${rowStyle}">
+        <td>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <strong>${acc.email}</strong>
+            ${isActive ? '<span style="font-size: 10px; background: #10b981; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 700;">ĐANG DÙNG</span>' : ''}
+          </div>
+        </td>
         <td><span class="status-tag active">${acc.plan || 'Pro'}</span></td>
-        <td><code class="inline-code" title="${acc.apiKey || ''}">${apiKeyPreview}</code></td>
+        <td><code class="inline-code" title="${acc.apiKey || ''}" style="${isActive ? 'color: #10b981; font-weight: 700;' : ''}">${apiKeyPreview}</code></td>
         <td>${remainingQuota} tokens</td>
         <td class="status-cell">${statusHtml}</td>
         <td class="last-checked-cell">${lastCheckedHtml}</td>
@@ -429,7 +451,9 @@ async function loadAccountsList() {
             <button class="btn-secondary" style="padding: 4px 8px; font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);" onclick="updateAccountCookie('${acc.id}', '${acc.email}')" title="Nhập hoặc dán Cookie mới cho tài khoản này">
               🍪 Nạp Cookie
             </button>
-            <button class="btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="useAccountAsActive('${acc.apiKey}')">Dùng key này</button>
+            ${isActive 
+              ? '<span style="padding: 4px 8px; font-size: 11px; color: #10b981; font-weight: 700;">✓ Đang dùng</span>' 
+              : `<button class="btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="useAccountAsActive('${acc.apiKey}')">Dùng key này</button>`}
             <button class="btn-secondary" style="padding: 4px 8px; font-size: 11px; color: #f87171;" onclick="deleteAccount('${acc.id}', '${acc.email}')">Xóa</button>
           </div>
         </td>
@@ -603,12 +627,67 @@ async function deleteAccount(id, email) {
   }
 }
 
-function useAccountAsActive(apiKey) {
+function syncActiveApiKeyEverywhere(apiKey, accountData = {}) {
+  if (!apiKey) return;
   currentApiKey = apiKey;
   localStorage.setItem('muse_api_key', apiKey);
-  document.getElementById('displayApiKey').value = apiKey;
+
+  // 1. Tab 1 - Tích hợp API (Active Key & Base URL)
+  const displayKey = document.getElementById('displayApiKey');
+  if (displayKey) displayKey.value = apiKey;
+
+  const displayBase = document.getElementById('displayBaseUrl');
+  if (displayBase) displayBase.value = currentBaseUrl;
+
+  // 2. Tab 2 - Xưởng Phim Drama Muse (Header Key Pill)
+  const dramaKeyEl = document.getElementById('dramaBoundApiKey');
+  if (dramaKeyEl) {
+    dramaKeyEl.textContent = `${apiKey.slice(0, 14)}...`;
+    dramaKeyEl.title = apiKey;
+  }
+
+  // 3. Tab 1 - Active Status Badge
+  const badge = document.getElementById('badgeActiveStatus');
+  if (badge) {
+    badge.className = 'status-tag active';
+    badge.textContent = `Active (${accountData.plan || 'Pro / Unlimited'})`;
+  }
+
+  // 4. Tab 1 - Code Integration Snippets (NextChat, LobeChat, Cherry Studio)
   updateIntegrationCodes(apiKey);
-  showNotice('Đã chuyển sang dùng API Key này!', 'success');
+
+  // 5. Tab 1 - Tokens & Quota (if provided)
+  if (accountData.quota) {
+    const q = accountData.quota;
+    const quotaNumbers = document.getElementById('quotaNumbers');
+    if (quotaNumbers && typeof q.remaining === 'number' && typeof q.total === 'number') {
+      quotaNumbers.textContent = `${q.remaining.toLocaleString()} / ${q.total.toLocaleString()} tokens`;
+    }
+    const quotaFill = document.getElementById('quotaFill');
+    if (quotaFill && typeof q.used === 'number' && typeof q.total === 'number' && q.total > 0) {
+      const pct = Math.min(100, Math.round((q.used / q.total) * 100));
+      quotaFill.style.width = `${pct}%`;
+    }
+  }
+
+  if (accountData.cookies) {
+    const setVal = (id, val) => {
+      const el = document.getElementById(id);
+      if (el && val) el.textContent = val;
+    };
+    setVal('valHatchSess', accountData.cookies.hatch_sess);
+    setVal('valHatchGw', accountData.cookies.hatch_gw);
+    setVal('valHatchVml', accountData.cookies.hatch_vml);
+    setVal('valHatchDevice', accountData.cookies.hatch_native_auth_device);
+  }
+}
+
+function useAccountAsActive(apiKey) {
+  const localList = getLocalAccounts();
+  const acc = localList.find(a => a.apiKey === apiKey) || {};
+  syncActiveApiKeyEverywhere(apiKey, acc);
+  loadAccountsList();
+  showNotice('Đã đồng bộ và chuyển sang dùng API Key này!', 'success');
 }
 
 // ========================================================
@@ -633,6 +712,12 @@ function initChromeAutoConnector() {
     if (event.data.type === 'MUSE_EXTENSION_PING') {
       isExtensionDetected = true;
       if (statusText) statusText.textContent = '🟢 Tiện ích Chrome kết nối';
+    }
+
+    if (event.data.type === 'MUSE_SESSION_EXTRACTED' && event.data.apiKey) {
+      syncActiveApiKeyEverywhere(event.data.apiKey, event.data.account);
+      showNotice('🎉 Đã đồng bộ và kích hoạt API Key từ tab Muse AI!', 'success');
+      loadAccountsList();
     }
 
     if (event.data.type === 'MUSE_CHROME_AUTO_DETECTED') {
@@ -728,7 +813,7 @@ function openDevToolsSnippetModal() {
   if (modal) modal.style.display = 'flex';
 
   const gatewayUrl = window.location.origin;
-  const snippet = `(async()=>{try{console.log('⏳ Đang kết nối với API Muse 2026...');const s=await(await fetch('/api/session?vm_state=live')).json().catch(()=>({}));const f=await(await fetch('/api/falco')).json().catch(()=>({}));const uid=f?.user?.identifier||('user_'+Date.now().toString(36));const res=await fetch('${gatewayUrl}/api/auth/extract-session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cookieString:document.cookie,email:f?.user?.email||\`meta_\${uid}@muse.ai\`,meta_user:f?.user,quota:s?.quota||{total:1000000,used:20000,remaining:980000},plan:'Pro / Unlimited',vm_state:s?.vm_state||'RUNNING'})});const d=await res.json();if(d.success){console.log('🎉 KẾT NỐI THÀNH CÔNG! API Key:', d.apiKey);const b=document.createElement('div');b.innerHTML='🎉 ĐÃ TỰ ĐỘNG KẾT NỐI THÀNH CÔNG VỚI API MUSE 2026!<br><small>API Key: '+d.apiKey+' - Hãy chuyển sang tab Web App để sử dụng.</small>';b.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:999999;background:linear-gradient(135deg,#059669,#10b981);color:#fff;padding:16px 24px;border-radius:12px;font-size:14px;font-weight:700;box-shadow:0 12px 36px rgba(0,0,0,0.5);font-family:sans-serif;text-align:center;line-height:1.6;';document.body.appendChild(b);setTimeout(()=>b.remove(),8000);}else{console.error('Lỗi:',d.error);alert('Lỗi: '+(d.error||'Không thể kết nối'));}}catch(e){console.error('Lỗi:',e);alert('Lỗi: '+e.message);}})();`;
+  const snippet = `(async()=>{try{console.log('⏳ Đang kết nối với API Muse 2026...');const s=await(await fetch('/api/session?vm_state=live')).json().catch(()=>({}));const f=await(await fetch('/api/falco')).json().catch(()=>({}));const uid=f?.user?.identifier||('user_'+Date.now().toString(36));const res=await fetch('${gatewayUrl}/api/auth/extract-session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cookieString:document.cookie,email:f?.user?.email||\`meta_\${uid}@muse.ai\`,meta_user:f?.user,quota:s?.quota||{total:1000000,used:20000,remaining:980000},plan:'Pro / Unlimited',vm_state:s?.vm_state||'RUNNING'})});const d=await res.json();if(d.success){console.log('🎉 KẾT NỐI THÀNH CÔNG! API Key:', d.apiKey);try{if(window.opener){window.opener.postMessage({type:'MUSE_SESSION_EXTRACTED',apiKey:d.apiKey,account:d.account},'*');}}catch(_){}const b=document.createElement('div');b.innerHTML='🎉 ĐÃ KẾT NỐI THÀNH CÔNG VỚI API MUSE 2026!<br><strong style="font-size:15px;color:#fef08a;display:block;margin:6px 0;">API Key: '+d.apiKey+'</strong><div style="display:flex;gap:8px;justify-content:center;margin-top:6px;"><button onclick="navigator.clipboard.writeText(\\''+d.apiKey+'\\');this.innerText=\\'✓ Đã sao chép!\\'" style="background:#fff;color:#047857;border:none;padding:6px 14px;border-radius:6px;font-weight:700;cursor:pointer;">📋 Sao chép Key</button><a href="${gatewayUrl}/?activated_key='+d.apiKey+'" target="_blank" style="color:#fff;background:rgba(255,255,255,0.25);padding:6px 14px;border-radius:6px;text-decoration:none;font-weight:700;">👉 Mở Web App</a></div>';b.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:999999;background:linear-gradient(135deg,#059669,#10b981);color:#fff;padding:18px 28px;border-radius:14px;font-size:14px;font-weight:600;box-shadow:0 16px 40px rgba(0,0,0,0.45);font-family:sans-serif;text-align:center;line-height:1.6;border:1px solid rgba(255,255,255,0.3);';document.body.appendChild(b);setTimeout(()=>b.remove(),15000);}else{console.error('Lỗi:',d.error);alert('Lỗi: '+(d.error||'Không thể kết nối'));}}catch(e){console.error('Lỗi:',e);alert('Lỗi: '+e.message);}})();`;
 
   if (codeArea) codeArea.value = snippet;
 }
@@ -755,6 +840,9 @@ window.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
     loadAccountsList();
   }
+});
+window.addEventListener('focus', () => {
+  loadAccountsList();
 });
 
 // ========================================================

@@ -239,10 +239,15 @@ module.exports = async function handler(req, res) {
             const accKey = (item.email || item.apiKey || item.id || '').toLowerCase().trim();
             if (accKey && !seen.has(accKey)) {
               seen.add(accKey);
+              const itemEmail = (item.email || 'user@muse.ai').trim().toLowerCase();
+              const emailHash = crypto.createHash('sha256').update('muse_deterministic_salt_v2_' + itemEmail).digest('hex').slice(0, 36);
+              const deterministicKey = 'sk-muse-' + emailHash;
+              const deterministicId = 'acc_' + emailHash.slice(0, 10);
+              const isMeta = itemEmail.startsWith('meta_');
               const accRecord = {
-                id: item.id || 'acc_' + crypto.randomBytes(6).toString('hex'),
-                email: (item.email || 'user@muse.ai').trim().toLowerCase(),
-                apiKey: item.apiKey || 'sk-muse-' + crypto.randomBytes(24).toString('hex'),
+                id: isMeta ? deterministicId : (item.id || deterministicId),
+                email: itemEmail,
+                apiKey: isMeta ? deterministicKey : (item.apiKey || deterministicKey),
                 cookies: item.cookies || {},
                 cookieString: item.cookieString || '',
                 plan: item.plan || 'Pro / Unlimited',
@@ -292,8 +297,12 @@ module.exports = async function handler(req, res) {
         }
       }
 
-      const accId = existing?.id || id || 'acc_' + crypto.randomBytes(6).toString('hex');
-      const accKey = existing?.apiKey || apiKey || 'sk-muse-' + crypto.randomBytes(24).toString('hex');
+      const emailHash = crypto.createHash('sha256').update('muse_deterministic_salt_v2_' + cleanEmail).digest('hex').slice(0, 36);
+      const deterministicKey = 'sk-muse-' + emailHash;
+      const deterministicId = 'acc_' + emailHash.slice(0, 10);
+      const isMeta = cleanEmail.startsWith('meta_');
+      const accId = isMeta ? deterministicId : (existing?.id || id || deterministicId);
+      const accKey = isMeta ? deterministicKey : (existing?.apiKey || apiKey || deterministicKey);
 
       const accRecord = {
         id: accId,

@@ -319,6 +319,49 @@ async function runTests() {
     assert.strictEqual(resData.body.account.vmState, 'RUNNING');
   });
 
+  // TEST 17: Deterministic API Key Guarantee (No Key Drift Across Invocations)
+  await test('api/auth/extract-session & api/accounts guarantee identical deterministic API Key across runs', async () => {
+    const extractHandler = require('../api/auth/extract-session');
+    const accountsHandler = require('../api/accounts');
+
+    // First extraction run
+    const run1 = mockReqRes({
+      method: 'POST',
+      body: {
+        cookieString: 'datr=abc; hatch_sess=s1',
+        meta_user: { kind: 'user', identifier: '1401136416407282' }
+      }
+    });
+    await extractHandler(run1.req, run1.res);
+    const key1 = run1.resData.body.apiKey;
+
+    // Second extraction run (simulating running the snippet in DevTools console again)
+    const run2 = mockReqRes({
+      method: 'POST',
+      body: {
+        cookieString: 'datr=xyz; hatch_sess=s2',
+        meta_user: { kind: 'user', identifier: '1401136416407282' }
+      }
+    });
+    await extractHandler(run2.req, run2.res);
+    const key2 = run2.resData.body.apiKey;
+
+    // Both extractions must produce the EXACT same deterministic key!
+    assert.strictEqual(key1, key2, 'API Key must not drift between snippet runs!');
+
+    // Account sync must also resolve to the identical deterministic key
+    const syncRun = mockReqRes({
+      method: 'POST',
+      body: {
+        action: 'sync',
+        email: 'meta_1401136416407282@muse.ai'
+      }
+    });
+    await accountsHandler(syncRun.req, syncRun.res);
+    const syncKey = syncRun.resData.body.account.apiKey;
+    assert.strictEqual(key1, syncKey, 'Accounts sync key must match extract-session key!');
+  });
+
   // Summary
   console.log('\n========================================================');
   console.log(`🏁 VERIFICATION COMPLETE: ${passed} PASSED, ${failed} FAILED`);

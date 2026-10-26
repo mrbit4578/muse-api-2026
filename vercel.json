@@ -1,6 +1,7 @@
 {
   "version": 2,
   "name": "api-muse-2026",
+  "framework": null,
   "cleanUrls": true,
   "headers": [
     {

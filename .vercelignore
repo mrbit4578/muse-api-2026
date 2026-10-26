@@ -1,0 +1,9 @@
+# Files ignored by Vercel deployment
+backends/
+extension/
+icons/
+tests/
+*.test.js
+.git/
+.env
+.env.local

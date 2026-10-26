@@ -1,0 +1,22 @@
+{
+  "name": "API Muse 2026 - AI Gateway & Drama Studio",
+  "short_name": "API Muse",
+  "description": "OpenAI-Compatible Gateway, Auto Account Extractor & AI Drama Studio for Android and Web",
+  "start_url": "/?source=pwa",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#020617",
+  "theme_color": "#0ea5e9",
+  "icons": [
+    {
+      "src": "/icons/icon48.png",
+      "sizes": "48x48",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    }
+  ]
+}

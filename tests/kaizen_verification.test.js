@@ -362,6 +362,26 @@ async function runTests() {
     assert.strictEqual(key1, syncKey, 'Accounts sync key must match extract-session key!');
   });
 
+  // TEST 18: Android Mobile Extraction Compatibility
+  await test('api/auth/extract-session handles Android mobile extraction payload smoothly', async () => {
+    const extractHandler = require('../api/auth/extract-session');
+    const androidRun = mockReqRes({
+      method: 'POST',
+      body: {
+        cookieString: 'datr=android_cookie_val; hatch_sess=sess_android_123',
+        email: 'meta_android_dev_01@muse.ai',
+        plan: 'Pro / Unlimited',
+        vm_state: 'RUNNING'
+      }
+    });
+    await extractHandler(androidRun.req, androidRun.res);
+    assert.strictEqual(androidRun.resData.statusCode, 200);
+    assert.strictEqual(androidRun.resData.body.success, true);
+    assert(androidRun.resData.body.apiKey.startsWith('sk-muse-'));
+    assert.strictEqual(androidRun.resData.body.account.email, 'meta_android_dev_01@muse.ai');
+    assert.strictEqual(androidRun.resData.body.account.status, 'Live (Trình duyệt Chrome)');
+  });
+
   // Summary
   console.log('\n========================================================');
   console.log(`🏁 VERIFICATION COMPLETE: ${passed} PASSED, ${failed} FAILED`);

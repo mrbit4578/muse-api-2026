@@ -10,7 +10,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const activatedKey = urlParams.get('activated_key');
   if (activatedKey && activatedKey.startsWith('sk-muse-')) {
     syncActiveApiKeyEverywhere(activatedKey);
+    const source = urlParams.get('from');
+    if (source === 'android') {
+      showNotice('🎉 Đã kết nối thành công tài khoản Muse AI trên điện thoại Android!', 'success');
+      if (navigator.vibrate) {
+        try { navigator.vibrate([80, 40, 80]); } catch(_) {}
+      }
+    } else if (source === 'qr_sync') {
+      showNotice('📱 Đã đồng bộ tài khoản Muse AI qua mã QR thành công!', 'success');
+    } else {
+      showNotice('🎉 Đã tự động kích hoạt API Key từ phiên Muse AI!', 'success');
+    }
     window.history.replaceState({}, document.title, window.location.pathname);
+  }
+
+  // Detect Android device
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  if (isAndroid) {
+    const bannerText = document.getElementById('chromeStatusText');
+    if (bannerText && !bannerText.textContent.includes('Live')) {
+      bannerText.textContent = '📱 Đang dùng Chrome Android';
+    }
   }
 
   initTabs();
@@ -844,6 +864,78 @@ window.addEventListener('visibilitychange', () => {
 window.addEventListener('focus', () => {
   loadAccountsList();
 });
+
+// ========================================================
+// 📱 ANDROID QUICK-CONNECT & MOBILE SUITE
+// ========================================================
+function openAndroidConnectModal(initialTab = 'bookmarklet') {
+  const modal = document.getElementById('modalAndroidConnect');
+  if (!modal) return;
+  modal.style.display = 'flex';
+
+  // 1. Prepare Android Bookmarklet Code
+  const gateway = window.location.origin;
+  const bookmarklet = `javascript:(async()=>{try{const g='${gateway}';const t=document.createElement('div');t.innerHTML='⏳ <strong>Đang kết nối Muse AI trên Android...</strong>';t.style.cssText='position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999999;background:#0f172a;color:#38bdf8;border:2px solid #38bdf8;padding:14px 20px;border-radius:12px;font-size:14px;font-weight:600;font-family:sans-serif;box-shadow:0 12px 30px rgba(0,0,0,0.6);text-align:center;width:85%;max-width:360px;';document.body.appendChild(t);const s=await(await fetch('/api/session?vm_state=live')).json().catch(()=>({}));const f=await(await fetch('/api/falco')).json().catch(()=>({}));const uid=f?.user?.identifier||('android_'+Date.now().toString(36));const r=await fetch(g+'/api/auth/extract-session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cookieString:document.cookie,email:f?.user?.email||('meta_'+uid+'@muse.ai'),meta_user:f?.user,quota:s?.quota||{total:1000000,used:20000,remaining:980000},plan:'Pro / Unlimited',vm_state:s?.vm_state||'RUNNING'})});const d=await r.json();if(d.success){try{navigator.vibrate&&navigator.vibrate([100,50,100]);}catch(_){}t.style.borderColor='#10b981';t.style.color='#10b981';t.innerHTML='🎉 <strong>KẾT NỐI ANDROID THÀNH CÔNG!</strong><br><small style="color:#fff;display:block;margin:6px 0;">API Key: '+d.apiKey.slice(0,16)+'...<\/small><span style="font-size:12px;color:#a7f3d0;">Đang chuyển về Web App...<\/span>';setTimeout(()=>{window.location.href=g+'/?activated_key='+encodeURIComponent(d.apiKey)+'&from=android';},1400);}else{t.style.borderColor='#ef4444';t.style.color='#ef4444';t.innerHTML='❌ Lỗi: '+(d.error||'Không thể kết nối');setTimeout(()=>t.remove(),4000);}}catch(e){alert('Lỗi: '+e.message);}})();`;
+
+  const codeArea = document.getElementById('androidBookmarkletCode');
+  if (codeArea) codeArea.value = bookmarklet;
+
+  // 2. Prepare QR Sync Link
+  const activeKey = currentApiKey || 'sk-muse-default';
+  const syncUrl = `${gateway}/?activated_key=${encodeURIComponent(activeKey)}&from=qr_sync`;
+  const qrImg = document.getElementById('androidQrImage');
+  if (qrImg) {
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=8&data=${encodeURIComponent(syncUrl)}`;
+  }
+  const urlPreview = document.getElementById('androidQrUrlPreview');
+  if (urlPreview) urlPreview.textContent = syncUrl;
+
+  switchAndroidSubtab(initialTab);
+}
+
+function closeAndroidConnectModal() {
+  const modal = document.getElementById('modalAndroidConnect');
+  if (modal) modal.style.display = 'none';
+}
+
+function switchAndroidSubtab(tabName) {
+  const tabs = ['bookmarklet', 'qr', 'kiwi'];
+  tabs.forEach(name => {
+    const btn = document.getElementById(`btnAndroidTab${name === 'bookmarklet' ? 'Bookmarklet' : name === 'qr' ? 'QR' : 'Kiwi'}`);
+    const pane = document.getElementById(`androidPane${name === 'bookmarklet' ? 'Bookmarklet' : name === 'qr' ? 'QR' : 'Kiwi'}`);
+    if (btn) btn.classList.toggle('active', name === tabName);
+    if (pane) pane.style.display = (name === tabName) ? 'block' : 'none';
+  });
+}
+
+function copyAndroidBookmarklet() {
+  const codeArea = document.getElementById('androidBookmarkletCode');
+  if (!codeArea) return;
+  codeArea.select();
+  navigator.clipboard.writeText(codeArea.value).then(() => {
+    showNotice('📋 Đã sao chép Bookmarklet! Hãy tạo Dấu trang trên Chrome Android và dán mã này vào URL.', 'success');
+  }).catch(() => {
+    document.execCommand('copy');
+    showNotice('📋 Đã sao chép mã Bookmarklet!', 'success');
+  });
+}
+
+function copyAndroidSyncUrl() {
+  const urlPreview = document.getElementById('androidQrUrlPreview');
+  const text = urlPreview ? urlPreview.textContent : window.location.href;
+  navigator.clipboard.writeText(text).then(() => {
+    showNotice('🔗 Đã sao chép link đồng bộ Android!', 'success');
+  }).catch(() => {
+    prompt('Link đồng bộ Android của bạn:', text);
+  });
+}
+
+function openAndroidSyncLinkNewTab() {
+  const urlPreview = document.getElementById('androidQrUrlPreview');
+  if (urlPreview && urlPreview.textContent) {
+    window.open(urlPreview.textContent, '_blank');
+  }
+}
 
 // ========================================================
 // 🧠 STANFORD CS229 & BPE TOKEN ESTIMATION CLIENT HELPERS

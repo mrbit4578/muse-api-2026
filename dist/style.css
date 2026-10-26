@@ -447,16 +447,60 @@ select:focus {
   font-weight: 600;
 }
 
-.status-tag.active {
+.status-tag.active,
+.status-tag.live {
   background: rgba(16, 185, 129, 0.2);
   color: var(--success);
   border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.15);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.status-tag.inactive {
+.status-tag.warning {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-tag.inactive,
+.status-tag.error {
   background: rgba(239, 68, 68, 0.2);
   color: var(--danger);
   border: 1px solid rgba(239, 68, 68, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-check-live {
+  padding: 4px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.btn-check-live:hover {
+  background: rgba(16, 185, 129, 0.3);
+  border-color: #10b981;
+  transform: translateY(-1px);
+}
+
+.btn-check-live:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .info-group {

@@ -224,6 +224,80 @@ async function runTests() {
     assert(firstChunk.startsWith('data: '), 'First chunk is valid SSE');
   });
 
+  // TEST 12: Account Pool Sync & Listing
+  await test('api/accounts supports sync and listing accounts', async () => {
+    const accountsHandler = require('../api/accounts');
+    const testAcc = {
+      action: 'sync',
+      id: 'acc_test_live_01',
+      email: 'pilot@muse.ai',
+      apiKey: 'sk-muse-live-test-key-12345678',
+      cookies: { hatch_sess: 'valid-sess-token-xyz' },
+      plan: 'Pro / Unlimited'
+    };
+    const { req: syncReq, res: syncRes, resData: syncData } = mockReqRes({
+      method: 'POST',
+      body: testAcc
+    });
+    await accountsHandler(syncReq, syncRes);
+    assert.strictEqual(syncData.statusCode, 200);
+    assert.strictEqual(syncData.body.success, true);
+    assert.strictEqual(syncData.body.account.email, 'pilot@muse.ai');
+
+    // List
+    const { req: listReq, res: listRes, resData: listData } = mockReqRes({ method: 'GET' });
+    await accountsHandler(listReq, listRes);
+    assert.strictEqual(listData.statusCode, 200);
+    assert(listData.body.count >= 1);
+    const found = listData.body.accounts.find(a => a.id === 'acc_test_live_01');
+    assert(found, 'Expected to find synced account in pool');
+  });
+
+  // TEST 13: Live Account Verification (Single Account)
+  await test('api/accounts checks live account with latency ping and token validation', async () => {
+    const accountsHandler = require('../api/accounts');
+    const { req, res, resData } = mockReqRes({
+      method: 'POST',
+      body: { action: 'check', id: 'acc_test_live_01' }
+    });
+    await accountsHandler(req, res);
+    assert.strictEqual(resData.statusCode, 200);
+    assert.strictEqual(resData.body.success, true);
+    assert.strictEqual(resData.body.mode, 'single');
+    assert.strictEqual(resData.body.account.id, 'acc_test_live_01');
+    assert(typeof resData.body.account.isLive === 'boolean');
+    assert(typeof resData.body.account.latencyMs === 'number');
+    assert(resData.body.account.lastChecked !== null);
+  });
+
+  // TEST 14: Batch Live Verification (Check All)
+  await test('api/accounts check_all verifies entire account pool concurrently', async () => {
+    const accountsHandler = require('../api/accounts');
+    const { req, res, resData } = mockReqRes({
+      method: 'POST',
+      body: { action: 'check_all' }
+    });
+    await accountsHandler(req, res);
+    assert.strictEqual(resData.statusCode, 200);
+    assert.strictEqual(resData.body.success, true);
+    assert.strictEqual(resData.body.mode, 'all');
+    assert(resData.body.total >= 1);
+    assert(Array.isArray(resData.body.results));
+    assert(typeof resData.body.liveCount === 'number');
+  });
+
+  // TEST 15: Delete Account from Pool
+  await test('api/accounts DELETE removes account cleanly', async () => {
+    const accountsHandler = require('../api/accounts');
+    const { req, res, resData } = mockReqRes({
+      method: 'DELETE',
+      body: { id: 'acc_test_live_01' }
+    });
+    await accountsHandler(req, res);
+    assert.strictEqual(resData.statusCode, 200);
+    assert.strictEqual(resData.body.success, true);
+  });
+
   // Summary
   console.log('\n========================================================');
   console.log(`🏁 VERIFICATION COMPLETE: ${passed} PASSED, ${failed} FAILED`);

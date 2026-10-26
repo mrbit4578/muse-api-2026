@@ -137,6 +137,20 @@ function handleAuthSuccess(data) {
   localStorage.setItem('muse_api_key', currentApiKey);
   localStorage.setItem('muse_session_data', JSON.stringify(data));
 
+  // Save to persistent local pool and sync to backend
+  saveAccountToLocalPool({
+    id: data.account?.id || 'acc_' + Math.random().toString(36).substring(2, 9),
+    email: data.account?.email || (data.email || 'user@muse.ai'),
+    apiKey: data.apiKey,
+    cookies: data.tokens || {},
+    cookieString: data.cookieString || '',
+    plan: data.account?.plan || 'Pro / Unlimited',
+    quota: data.account?.quota || { total: 1000000, used: 0, remaining: 1000000 },
+    status: 'Live (Sẵn sàng)',
+    liveVerified: true,
+    lastChecked: new Date().toISOString()
+  });
+
   updateDashboardWithSession(data);
   loadAccountsList();
 }
@@ -226,39 +240,240 @@ async function checkGatewayStatus() {
   }
 }
 
-// 5. Account Pool Management
+// 5. Account Pool Management & Live Verification
+function getLocalAccounts() {
+  try {
+    const raw = localStorage.getItem('muse_account_pool');
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalAccounts(list) {
+  try {
+    localStorage.setItem('muse_account_pool', JSON.stringify(list));
+  } catch (e) {
+    console.warn('Cannot save account pool to localStorage:', e);
+  }
+}
+
+function saveAccountToLocalPool(acc) {
+  const list = getLocalAccounts();
+  const existingIdx = list.findIndex(a => a.id === acc.id || a.apiKey === acc.apiKey || (acc.email && a.email === acc.email));
+  if (existingIdx >= 0) {
+    list[existingIdx] = { ...list[existingIdx], ...acc };
+  } else {
+    list.push(acc);
+  }
+  saveLocalAccounts(list);
+
+  // Sync to serverless backend
+  fetch('/api/accounts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'sync', ...acc })
+  }).catch(() => {});
+}
+
+function formatLastChecked(iso) {
+  if (!iso) return '<span style="color:var(--text-muted); font-size:11px;">Chưa kiểm tra</span>';
+  try {
+    const d = new Date(iso);
+    const timeStr = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return `<span style="font-size:11px; color:#94a3b8;">${timeStr}</span>`;
+  } catch {
+    return `<span style="font-size:11px;">${iso}</span>`;
+  }
+}
+
+function renderAccountStatusBadge(acc) {
+  if (acc.isLive === true) {
+    const ping = acc.latencyMs ? ` (${acc.latencyMs}ms)` : '';
+    return `<span class="status-tag live"><span class="dot live"></span> Live${ping}</span>`;
+  }
+  if (acc.status && (acc.status.includes('Live') || acc.status.includes('Sẵn sàng'))) {
+    const msMatch = acc.status.match(/\((\d+ms)\)/);
+    const ms = msMatch ? ` (${msMatch[1]})` : (acc.latencyMs ? ` (${acc.latencyMs}ms)` : '');
+    return `<span class="status-tag live"><span class="dot live"></span> Live${ms}</span>`;
+  }
+  if (acc.status && (acc.status.includes('Hết hạn') || acc.status.includes('401') || acc.isLive === false)) {
+    return `<span class="status-tag error">🔴 ${acc.status || 'Hết hạn Cookie (401)'}</span>`;
+  }
+  if (acc.status && acc.status.includes('Standby')) {
+    return `<span class="status-tag warning">🟡 Standby</span>`;
+  }
+  return `<span class="status-tag warning"><span class="dot live" style="background:#f59e0b;"></span> ${acc.status || 'Chưa kiểm tra'}</span>`;
+}
+
 async function loadAccountsList() {
   const tbody = document.getElementById('accountsTableBody');
   const countLabel = document.getElementById('accCount');
+  const totalAccEl = document.getElementById('totalAccCount');
+  const liveAccEl = document.getElementById('liveAccCount');
 
+  let serverAccounts = [];
   try {
     const res = await fetch('/api/accounts');
-    const data = await res.json();
-
-    if (data.success && Array.isArray(data.accounts)) {
-      countLabel.textContent = data.accounts.length;
-
-      if (data.accounts.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding: 24px; color: var(--text-muted);">Chưa có tài khoản nào được kết nối. Hãy đăng nhập tài khoản Muse ở Tab 1.</td></tr>`;
-        return;
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.accounts)) {
+        serverAccounts = data.accounts;
       }
-
-      tbody.innerHTML = data.accounts.map(acc => `
-        <tr>
-          <td><strong>${acc.email}</strong></td>
-          <td><span class="status-tag active">${acc.plan || 'Pro'}</span></td>
-          <td><code class="inline-code">${acc.apiKeyPreview}</code></td>
-          <td>${acc.quota ? (acc.quota.remaining).toLocaleString() : '1,000,000'} tokens</td>
-          <td><span class="dot live"></span> Sẵn sàng</td>
-          <td>
-            <button class="btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="useAccountAsActive('${acc.apiKey}')">Dùng key này</button>
-            <button class="btn-secondary" style="padding: 4px 8px; font-size: 11px; color: #f87171;" onclick="deleteAccount('${acc.id}')">Xóa</button>
-          </td>
-        </tr>
-      `).join('');
     }
   } catch (e) {
-    console.warn('Cannot load accounts pool:', e);
+    console.warn('Cannot load accounts from backend:', e);
+  }
+
+  // Merge with localStorage accounts
+  const localList = getLocalAccounts();
+  const mergedMap = new Map();
+
+  for (const acc of localList) {
+    if (acc.id) mergedMap.set(acc.id, acc);
+  }
+
+  for (const acc of serverAccounts) {
+    if (acc.id) {
+      const prev = mergedMap.get(acc.id) || {};
+      mergedMap.set(acc.id, { ...prev, ...acc });
+    }
+  }
+
+  const allAccounts = Array.from(mergedMap.values());
+
+  // Background sync any missing accounts to serverless backend
+  if (serverAccounts.length < allAccounts.length) {
+    for (const acc of allAccounts) {
+      if (!serverAccounts.some(s => s.id === acc.id)) {
+        fetch('/api/accounts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'sync', ...acc })
+        }).catch(() => {});
+      }
+    }
+  }
+
+  // Calculate live count
+  const liveCount = allAccounts.filter(a => a.isLive === true || (a.status && a.status.includes('Live'))).length;
+  if (countLabel) countLabel.textContent = liveCount;
+  if (totalAccEl) totalAccEl.textContent = allAccounts.length;
+  if (liveAccEl) liveAccEl.textContent = liveCount;
+
+  if (allAccounts.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding: 28px; color: var(--text-muted);">Chưa có tài khoản nào trong pool. Đăng nhập hoặc trích xuất Cookie ở Tab 1 để thêm vào hệ thống.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = allAccounts.map(acc => {
+    const apiKeyPreview = acc.apiKeyPreview || (acc.apiKey ? `${acc.apiKey.slice(0, 10)}...${acc.apiKey.slice(-4)}` : 'Chưa có key');
+    const remainingQuota = acc.quota ? Number(acc.quota.remaining).toLocaleString() : '1,000,000';
+    const statusHtml = renderAccountStatusBadge(acc);
+    const lastCheckedHtml = formatLastChecked(acc.lastChecked);
+
+    return `
+      <tr id="acc-row-${acc.id}">
+        <td><strong>${acc.email}</strong></td>
+        <td><span class="status-tag active">${acc.plan || 'Pro'}</span></td>
+        <td><code class="inline-code" title="${acc.apiKey || ''}">${apiKeyPreview}</code></td>
+        <td>${remainingQuota} tokens</td>
+        <td class="status-cell">${statusHtml}</td>
+        <td class="last-checked-cell">${lastCheckedHtml}</td>
+        <td>
+          <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+            <button class="btn-check-live" onclick="checkAccountLive('${acc.id}', '${acc.apiKey}')" title="Kiểm tra độ trễ và tính hợp lệ của Cookie">
+              🔍 Check Live
+            </button>
+            <button class="btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="useAccountAsActive('${acc.apiKey}')">Dùng key này</button>
+            <button class="btn-secondary" style="padding: 4px 8px; font-size: 11px; color: #f87171;" onclick="deleteAccount('${acc.id}')">Xóa</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function checkAccountLive(id, apiKey) {
+  const row = document.getElementById(`acc-row-${id}`);
+  let checkBtn = null;
+  if (row) {
+    checkBtn = row.querySelector('.btn-check-live');
+    if (checkBtn) {
+      checkBtn.disabled = true;
+      checkBtn.innerHTML = '⏳ Đang ping...';
+    }
+  }
+
+  try {
+    const res = await fetch('/api/accounts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'check', id, apiKey })
+    });
+    const data = await res.json();
+
+    if (data.success && data.account) {
+      const list = getLocalAccounts();
+      const idx = list.findIndex(a => a.id === id || a.apiKey === apiKey);
+      if (idx >= 0) {
+        list[idx] = { ...list[idx], ...data.account };
+        saveLocalAccounts(list);
+      }
+
+      showNotice(data.message, data.account.isLive ? 'success' : 'error');
+      loadAccountsList();
+    } else {
+      showNotice(data.error || 'Kiểm tra tài khoản thất bại', 'error');
+    }
+  } catch (err) {
+    showNotice(`Lỗi kiểm tra live: ${err.message}`, 'error');
+  } finally {
+    if (checkBtn) {
+      checkBtn.disabled = false;
+      checkBtn.innerHTML = '🔍 Check Live';
+    }
+  }
+}
+
+async function checkAllAccountsLive() {
+  const btn = document.getElementById('btnCheckAllLive');
+  const originalHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Đang kiểm tra toàn bộ...';
+  }
+
+  try {
+    const res = await fetch('/api/accounts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'check_all' })
+    });
+    const data = await res.json();
+
+    if (data.success && Array.isArray(data.results)) {
+      const list = getLocalAccounts();
+      data.results.forEach(resAcc => {
+        const idx = list.findIndex(a => a.id === resAcc.id);
+        if (idx >= 0) {
+          list[idx] = { ...list[idx], ...resAcc };
+        }
+      });
+      saveLocalAccounts(list);
+
+      showNotice(data.message, 'success');
+      loadAccountsList();
+    } else {
+      showNotice(data.error || 'Kiểm tra tài khoản thất bại', 'error');
+    }
+  } catch (err) {
+    showNotice(`Lỗi kiểm tra live: ${err.message}`, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
   }
 }
 
@@ -270,7 +485,12 @@ async function deleteAccount(id) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id })
     });
+
+    const list = getLocalAccounts().filter(a => a.id !== id);
+    saveLocalAccounts(list);
+
     loadAccountsList();
+    showNotice('Đã xóa tài khoản khỏi pool', 'info');
   } catch (e) {
     alert('Lỗi: ' + e.message);
   }
@@ -281,7 +501,7 @@ function useAccountAsActive(apiKey) {
   localStorage.setItem('muse_api_key', apiKey);
   document.getElementById('displayApiKey').value = apiKey;
   updateIntegrationCodes(apiKey);
-  alert('Đã chuyển sang dùng API Key này!');
+  showNotice('Đã chuyển sang dùng API Key này!', 'success');
 }
 
 // ========================================================
@@ -673,13 +893,38 @@ function toggleTokensAccordion() {
 
 function showNotice(msg, type) {
   const box = document.getElementById('authNotice');
-  if (!msg) {
-    box.hidden = true;
-    return;
+  if (box) {
+    if (!msg) {
+      box.hidden = true;
+    } else {
+      box.hidden = false;
+      box.className = `alert-box ${type}`;
+      box.textContent = msg;
+    }
   }
-  box.hidden = false;
-  box.className = `alert-box ${type}`;
-  box.textContent = msg;
+
+  // Floating Toast Notification for multi-tab user experience
+  if (msg) {
+    let toast = document.getElementById('appFloatingToast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'appFloatingToast';
+      document.body.appendChild(toast);
+    }
+    const colorStyles = {
+      success: 'background: rgba(6, 78, 59, 0.95); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);',
+      error: 'background: rgba(127, 29, 29, 0.95); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4);',
+      info: 'background: rgba(30, 58, 138, 0.95); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4);'
+    };
+    const baseStyle = 'position: fixed; bottom: 24px; right: 24px; z-index: 9999; padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 8px; transition: all 0.3s ease; opacity: 1; transform: translateY(0); ';
+    toast.style.cssText = baseStyle + (colorStyles[type] || colorStyles.info);
+    toast.innerHTML = msg;
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(12px)';
+    }, 4000);
+  }
 }
 
 function setButtonLoading(btn, isLoading) {

@@ -676,12 +676,21 @@
       <!-- TAB 4: ACCOUNT POOL -->
       <section id="tab-accounts" class="tab-pane">
         <div class="glass-card">
-          <div class="card-header">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
             <div class="card-title">
               <span class="icon-glow">👥</span>
               <h2>Hệ thống Account Pool (Cân bằng tải & Multi-Account)</h2>
             </div>
-            <button class="btn-secondary" onclick="loadAccountsList()">Làm mới danh sách 🔄</button>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+              <span id="accountPoolStats" class="metric-pill" style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px;">
+                <span class="dot live"></span>
+                <span>Live: <strong id="liveAccCount" style="color: #10b981;">0</strong> / <span id="totalAccCount">0</span></span>
+              </span>
+              <button class="btn-primary" id="btnCheckAllLive" onclick="checkAllAccountsLive()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); font-weight: 600;">
+                ⚡ Kiểm tra tất cả Live
+              </button>
+              <button class="btn-secondary" onclick="loadAccountsList()">Làm mới danh sách 🔄</button>
+            </div>
           </div>
 
           <div class="table-responsive">
@@ -692,13 +701,14 @@
                   <th>Gói / Plan</th>
                   <th>API Key</th>
                   <th>Hạn mức Quota</th>
-                  <th>Trạng thái</th>
+                  <th>Trạng thái & Ping</th>
+                  <th>Lần cuối kiểm tra</th>
                   <th>Hành động</th>
                 </tr>
               </thead>
               <tbody id="accountsTableBody">
                 <tr>
-                  <td colspan="6" class="text-center">Đang tải danh sách tài khoản...</td>
+                  <td colspan="7" class="text-center">Đang tải danh sách tài khoản...</td>
                 </tr>
               </tbody>
             </table>

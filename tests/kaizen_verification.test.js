@@ -382,6 +382,47 @@ async function runTests() {
     assert.strictEqual(androidRun.resData.body.account.status, 'Live (Trình duyệt Chrome)');
   });
 
+  // TEST 19: Photorealistic AI Image & Video Generation
+  await test('api/drama/generate & api/v1/videos return photorealistic AI media URLs', async () => {
+    const dramaHandler = require('../api/drama/generate');
+    const videosHandler = require('../api/v1/videos');
+
+    // Drama generation test
+    const dramaRun = mockReqRes({
+      method: 'POST',
+      body: {
+        idea: 'Tổng tài ngầm bảo vệ vợ',
+        durationMinutes: 1,
+        clipSeconds: 15
+      }
+    });
+    await dramaHandler(dramaRun.req, dramaRun.res);
+    assert.strictEqual(dramaRun.resData.statusCode, 200);
+    assert.strictEqual(dramaRun.resData.body.success, true);
+    assert(Array.isArray(dramaRun.resData.body.scenes));
+    assert(dramaRun.resData.body.scenes.length >= 1);
+    
+    // Check first scene image URL
+    const scene1 = dramaRun.resData.body.scenes[0];
+    assert(scene1.imageUrl.includes('image.pollinations.ai') || scene1.imageUrl.startsWith('http'));
+    assert(scene1.imageUrl.includes('photorealistic') || scene1.imagePrompt.includes('photorealistic'));
+
+    // Video generation test
+    const videoRun = mockReqRes({
+      method: 'POST',
+      body: {
+        prompt: 'A dramatic confrontation in rain',
+        duration: 5,
+        aspect_ratio: '16:9'
+      }
+    });
+    await videosHandler(videoRun.req, videoRun.res);
+    assert.strictEqual(videoRun.resData.statusCode, 200);
+    assert.strictEqual(videoRun.resData.body.status, 'completed');
+    assert.strictEqual(videoRun.resData.body.data[0].content_type, 'image/jpeg');
+    assert(videoRun.resData.body.data[0].url.includes('image.pollinations.ai'));
+  });
+
   // Summary
   console.log('\n========================================================');
   console.log(`🏁 VERIFICATION COMPLETE: ${passed} PASSED, ${failed} FAILED`);

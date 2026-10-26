@@ -22,8 +22,9 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  const encodedPrompt = encodeURIComponent(prompt.trim());
-  const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&seed=${Math.floor(Math.random() * 1000000)}`;
+  const cleanPrompt = String(prompt).replace(/[^a-zA-Z0-9\s,.-]/g, ' ').trim();
+  const realisticPrompt = encodeURIComponent(`${cleanPrompt}, photorealistic, highly detailed, 8k resolution, cinematic lighting, masterpiece photography`);
+  const imageUrl = `https://image.pollinations.ai/prompt/${realisticPrompt}?width=1024&height=1024&nologo=true&seed=${Math.floor(Math.random() * 1000000)}`;
 
   const images = [];
   for (let i = 0; i < Math.min(n, 4); i++) {

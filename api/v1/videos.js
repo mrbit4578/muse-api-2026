@@ -38,8 +38,12 @@ module.exports = async function handler(req, res) {
 
     const taskId = 'vid_' + crypto.randomBytes(12).toString('hex');
     const createdTime = Math.floor(Date.now() / 1000);
-    const sceneNum = Math.floor(Math.random() * 6) + 1;
-    const mediaUrl = `/api/drama/image?scene=${sceneNum}&title=${encodeURIComponent(prompt ? prompt.slice(0, 40) : 'Video Scene')}`;
+    const cleanPrompt = String(prompt || 'cinematic movie video shot').replace(/[^a-zA-Z0-9\s,.-]/g, ' ').trim();
+    const encodedPrompt = encodeURIComponent(`${cleanPrompt}, cinematic 8k video shot, photorealistic motion, high definition`);
+    const seed = Math.floor(Math.random() * 1000000);
+    const width = aspect_ratio === '9:16' ? 720 : 1280;
+    const height = aspect_ratio === '9:16' ? 1280 : 720;
+    const mediaUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true&seed=${seed}`;
 
     const task = {
       id: taskId,
@@ -55,9 +59,9 @@ module.exports = async function handler(req, res) {
         {
           url: mediaUrl,
           duration: duration,
-          width: aspect_ratio === '9:16' ? 720 : 1280,
-          height: aspect_ratio === '9:16' ? 1280 : 720,
-          content_type: 'image/svg+xml'
+          width: width,
+          height: height,
+          content_type: 'image/jpeg'
         }
       ]
     };

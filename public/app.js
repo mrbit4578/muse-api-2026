@@ -1615,25 +1615,35 @@ function downloadSrtDirect() {
 async function renderDramaStoryboard(scenes) {
   const countEl = document.getElementById('sbCount');
   const gridEl = document.getElementById('dramaStoryboardGrid');
-  if (countEl) countEl.textContent = `${scenes.length} hình ảnh phân cảnh`;
+  if (countEl) countEl.textContent = `${scenes.length} hình ảnh phân cảnh điện ảnh AI`;
   if (!gridEl) return;
 
-  gridEl.innerHTML = scenes.map(s => `
-    <div class="sb-card">
-      <div class="sb-img-wrapper">
-        <span class="sb-badge">Clip ${s.clipNumber}</span>
-        <img src="${s.imageUrl}" alt="Phân cảnh ${s.clipNumber}" loading="lazy" onerror="this.onerror=null;this.src='/api/drama/image?scene=${s.clipNumber}&title=${encodeURIComponent(s.sceneName || '')}'">
-      </div>
-      <div class="sb-content">
-        <div class="sb-scene-title">${s.sceneName}</div>
-        <div class="sb-voice-preview">"${s.narration.slice(0, 50)}..."</div>
-        <div style="margin-top: 8px; display: flex; gap: 6px;">
-          <a href="${s.imageUrl}" target="_blank" class="btn-copy-mini" style="text-decoration:none; display:inline-block; font-size:11px;">🔍 Xem HD</a>
-          <button type="button" class="btn-copy-mini" onclick="copyPromptItem(${s.clipNumber - 1})" style="font-size:11px;">📋 Prompt</button>
+  gridEl.innerHTML = scenes.map(s => {
+    const promptEnc = encodeURIComponent(s.visualPrompt || s.sceneName || 'cinematic drama');
+    const directAiUrl = s.imageUrl || s.aiImageUrl || `https://image.pollinations.ai/prompt/${promptEnc}?width=1280&height=720&nologo=true&seed=${s.clipNumber * 7919}`;
+    const proxyUrl = `/api/drama/image?scene=${s.clipNumber}&prompt=${promptEnc}&title=${encodeURIComponent(s.sceneName || '')}`;
+
+    return `
+      <div class="sb-card">
+        <div class="sb-img-wrapper" style="position: relative; overflow: hidden; background: #000; min-height: 140px;">
+          <span class="sb-badge" style="background: rgba(14, 165, 233, 0.85); color: #fff; font-weight: 700; z-index: 2;">Clip ${s.clipNumber}</span>
+          <img src="${directAiUrl}" alt="${escapeQuotes(s.sceneName)}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease;" onerror="this.onerror=null;this.src='${proxyUrl}'">
+        </div>
+        <div class="sb-content">
+          <div class="sb-scene-title" style="font-weight: 700; color: #fff; margin-bottom: 4px;">${s.sceneName}</div>
+          <div class="sb-voice-preview" style="font-size: 12px; color: var(--text-muted); line-height: 1.4;">"${s.narration.slice(0, 60)}..."</div>
+          <div style="margin-top: 10px; display: flex; gap: 8px; align-items: center;">
+            <a href="${directAiUrl}" target="_blank" class="btn-copy-mini" style="text-decoration:none; display:inline-flex; align-items: center; gap: 4px; font-size:11px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 3px 8px; border-radius: 4px;">
+              🔍 Xem Ảnh HD
+            </a>
+            <button type="button" class="btn-copy-mini" onclick="copyPromptItem(${s.clipNumber - 1})" style="font-size:11px; padding: 3px 8px; border-radius: 4px;">
+              📋 Prompt
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 function renderDramaVoiceTracks(scenes) {
@@ -1721,167 +1731,34 @@ function playDramaticDrone(durationSec) {
   }
 }
 
-function drawProceduralScene(ctx, width, height, sceneNum, progress) {
-  const seed = ((sceneNum - 1) % 6) + 1;
-  const zoom = 1.0 + progress * 0.08;
-  const panX = Math.sin(progress * Math.PI) * 15;
+function drawCinematicBackdrop(ctx, width, height, sceneNum, sceneTitle, progress) {
+  // Rich photorealistic dark film atmosphere with ambient cinematic lighting
+  const bgGrad = ctx.createLinearGradient(0, 0, width, height);
+  bgGrad.addColorStop(0, '#0a0d14');
+  bgGrad.addColorStop(0.5, '#161e2e');
+  bgGrad.addColorStop(1, '#05070a');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, width, height);
 
+  // Soft atmospheric golden glow
+  const glow = ctx.createRadialGradient(width / 2, height / 2, 50, width / 2, height / 2, 450);
+  glow.addColorStop(0, 'rgba(245, 158, 11, 0.2)');
+  glow.addColorStop(0.7, 'rgba(14, 165, 233, 0.08)');
+  glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, width, height);
+
+  // Elegant cinematic scene title & typography
   ctx.save();
-  ctx.translate(width / 2 + panX, height / 2);
-  ctx.scale(zoom, zoom);
-  ctx.translate(-width / 2, -height / 2);
+  ctx.font = '700 26px "Plus Jakarta Sans", sans-serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(sceneTitle || `Phân cảnh ${sceneNum}`, width / 2, height / 2 - 20);
 
-  if (seed === 1) {
-    // Luxury Banquet Hall (Sảnh tiệc xa hoa)
-    const bgGrad = ctx.createLinearGradient(0, 0, width, height);
-    bgGrad.addColorStop(0, '#1c1106');
-    bgGrad.addColorStop(0.5, '#2a1b0c');
-    bgGrad.addColorStop(1, '#0a0703');
-    ctx.fillStyle = bgGrad;
-    ctx.fillRect(0, 0, width, height);
-
-    // Chandelier Glow
-    const glow = ctx.createRadialGradient(width / 2, 80, 20, width / 2, 80, 450);
-    glow.addColorStop(0, 'rgba(245, 158, 11, 0.55)');
-    glow.addColorStop(0.5, 'rgba(217, 119, 6, 0.18)');
-    glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, width, height);
-
-    // Table & Pillars
-    ctx.fillStyle = '#1e1710';
-    ctx.fillRect(80, 0, 100, height);
-    ctx.fillRect(width - 180, 0, 100, height);
-
-    ctx.fillStyle = '#17120a';
-    ctx.beginPath();
-    ctx.ellipse(width / 2, height - 80, width * 0.48, 140, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-  } else if (seed === 2) {
-    // Dramatic Shards / Rain Tension
-    const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
-    bgGrad.addColorStop(0, '#0a0e17');
-    bgGrad.addColorStop(0.6, '#1e1b2e');
-    bgGrad.addColorStop(1, '#05070a');
-    ctx.fillStyle = bgGrad;
-    ctx.fillRect(0, 0, width, height);
-
-    // Blue Cold Spotlight
-    const spot = ctx.createRadialGradient(width / 2, height - 120, 30, width / 2, height - 120, 320);
-    spot.addColorStop(0, 'rgba(56, 189, 248, 0.3)');
-    spot.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = spot;
-    ctx.fillRect(0, 0, width, height);
-
-    // Red spilled wine
-    ctx.fillStyle = 'rgba(127, 29, 29, 0.65)';
-    ctx.beginPath();
-    ctx.ellipse(width / 2, height - 130, 90, 25, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-  } else if (seed === 3) {
-    // Night Skyline Balcony
-    const bgGrad = ctx.createLinearGradient(0, 0, width, height);
-    bgGrad.addColorStop(0, '#030712');
-    bgGrad.addColorStop(0.6, '#0b1329');
-    bgGrad.addColorStop(1, '#02040a');
-    ctx.fillStyle = bgGrad;
-    ctx.fillRect(0, 0, width, height);
-
-    // Skyscrapers silhouettes
-    ctx.fillStyle = '#1e293b';
-    ctx.fillRect(320, 160, 120, height);
-    ctx.fillRect(720, 200, 100, height);
-    ctx.fillRect(840, 240, 140, height);
-
-    // Neon Window Dots
-    ctx.fillStyle = '#f59e0b';
-    ctx.fillRect(360, 220, 6, 6);
-    ctx.fillStyle = '#00d2ff';
-    ctx.fillRect(390, 260, 6, 6);
-    ctx.fillStyle = '#ec4899';
-    ctx.fillRect(750, 240, 6, 6);
-
-    // Balcony Silhouetted Man
-    ctx.fillStyle = '#020617';
-    ctx.beginPath();
-    ctx.arc(width / 2, 420, 36, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillRect(width / 2 - 45, 460, 90, height);
-
-    // Glowing phone
-    ctx.fillStyle = '#38bdf8';
-    ctx.fillRect(width / 2 + 35, 440, 14, 24);
-
-  } else if (seed === 4) {
-    // Executive Desk & Legal Contract
-    const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
-    bgGrad.addColorStop(0, '#140f07');
-    bgGrad.addColorStop(0.5, '#24180a');
-    bgGrad.addColorStop(1, '#0a0703');
-    ctx.fillStyle = bgGrad;
-    ctx.fillRect(0, 0, width, height);
-
-    // Desk Lamp Glow
-    const glow = ctx.createRadialGradient(width / 2, 220, 20, width / 2, 220, 380);
-    glow.addColorStop(0, 'rgba(254, 240, 138, 0.35)');
-    glow.addColorStop(0.6, 'rgba(202, 138, 4, 0.12)');
-    glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, width, height);
-
-    // Desk & Contract papers
-    ctx.fillStyle = '#1c1208';
-    ctx.fillRect(200, 360, width - 400, height);
-    ctx.fillStyle = '#f8fafc';
-    ctx.fillRect(width / 2 - 120, 420, 260, 240);
-
-    // Red seal
-    ctx.fillStyle = '#ef4444';
-    ctx.beginPath();
-    ctx.arc(width / 2 + 60, 560, 28, 0, Math.PI * 2);
-    ctx.fill();
-
-  } else if (seed === 5) {
-    // Sunrise Victory
-    const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
-    bgGrad.addColorStop(0, '#451a03');
-    bgGrad.addColorStop(0.4, '#b45309');
-    bgGrad.addColorStop(0.7, '#f59e0b');
-    bgGrad.addColorStop(1, '#1e1b4b');
-    ctx.fillStyle = bgGrad;
-    ctx.fillRect(0, 0, width, height);
-
-    // Giant Sun
-    ctx.fillStyle = '#fef08a';
-    ctx.beginPath();
-    ctx.arc(width / 2, 380, 140, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Window Architecture
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(220, 0, 16, height);
-    ctx.fillRect(width / 2 - 8, 0, 16, height);
-    ctx.fillRect(width - 240, 0, 16, height);
-
-  } else {
-    // Rainy Room
-    const bgGrad = ctx.createLinearGradient(0, 0, width, height);
-    bgGrad.addColorStop(0, '#18120c');
-    bgGrad.addColorStop(0.6, '#261b11');
-    bgGrad.addColorStop(1, '#0d0804');
-    ctx.fillStyle = bgGrad;
-    ctx.fillRect(0, 0, width, height);
-
-    // Window with rain
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(width - 480, 100, 360, 320);
-    ctx.strokeStyle = '#334155';
-    ctx.lineWidth = 6;
-    ctx.strokeRect(width - 480, 100, 360, 320);
-  }
-
+  ctx.font = '500 14px "JetBrains Mono", monospace';
+  ctx.fillStyle = '#38bdf8';
+  ctx.fillText('⚡ ĐANG KẾT XUẤT HÌNH ẢNH ĐIỆN ẢNH AI...', width / 2, height / 2 + 25);
   ctx.restore();
 }
 
@@ -1961,24 +1838,54 @@ async function composeAndRenderVideo(scenes) {
   const width = canvas.width;
   const height = canvas.height;
 
-  // Pre-load SVG/Image assets
+  // Pre-load photorealistic AI images with parallel loading
   const scenesToRender = scenes.slice(0, Math.min(scenes.length, 12));
   const loadedImages = [];
 
-  for (const s of scenesToRender) {
+  const statusLabel = document.getElementById('pipelineProgressLabel');
+  if (statusLabel) statusLabel.textContent = `Đang tải khung hình AI điện ảnh... (0/${scenesToRender.length})`;
+
+  let loadedCount = 0;
+  await Promise.all(scenesToRender.map(async (s) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.src = s.imageUrl || `/api/drama/image?scene=${s.clipNumber}&title=${encodeURIComponent(s.sceneName || '')}`;
+    const promptEnc = encodeURIComponent(s.visualPrompt || s.sceneName || 'cinematic drama');
+    const directAiUrl = s.imageUrl || s.aiImageUrl || `https://image.pollinations.ai/prompt/${promptEnc}?width=1280&height=720&nologo=true&seed=${s.clipNumber * 7919}`;
+    const fallback = `/api/drama/image?scene=${s.clipNumber}&prompt=${promptEnc}&title=${encodeURIComponent(s.sceneName || '')}`;
     
-    // Non-blocking load with fast timeout
+    img.src = directAiUrl;
+
     await new Promise(r => {
       let done = false;
-      img.onload = () => { if (!done) { done = true; r(); } };
-      img.onerror = () => { if (!done) { done = true; r(); } };
-      setTimeout(() => { if (!done) { done = true; r(); } }, 600);
+      img.onload = () => {
+        if (!done) {
+          done = true;
+          loadedCount++;
+          if (statusLabel) statusLabel.textContent = `Đang tải khung hình AI... (${loadedCount}/${scenesToRender.length})`;
+          r();
+        }
+      };
+      img.onerror = () => {
+        if (img.src !== fallback) {
+          img.src = fallback;
+        } else if (!done) {
+          done = true;
+          r();
+        }
+      };
+      setTimeout(() => {
+        if (!done) {
+          done = true;
+          r();
+        }
+      }, 3500);
     });
+
     loadedImages.push({ img, scene: s });
-  }
+  }));
+
+  // Preserve scene order
+  loadedImages.sort((a, b) => a.scene.clipNumber - b.scene.clipNumber);
 
   // Setup MediaRecorder
   let recordedChunks = [];
@@ -2040,17 +1947,24 @@ async function composeAndRenderVideo(scenes) {
     ctx.clearRect(0, 0, width, height);
 
     if (current.img && current.img.complete && current.img.naturalWidth > 0) {
-      // Ken Burns smooth camera motion
+      // Ken Burns smooth camera motion on real AI photograph
       const scale = 1.0 + sceneProgress * 0.08;
-      const panX = Math.sin(sceneProgress * Math.PI) * 12;
+      const panX = Math.sin(sceneProgress * Math.PI) * 16;
       const sw = width * scale;
       const sh = height * scale;
       const sx = -(sw - width) / 2 + panX;
       const sy = -(sh - height) / 2;
       ctx.drawImage(current.img, sx, sy, sw, sh);
+
+      // Cinematic Vignette (Dramatic film edges)
+      const vignette = ctx.createRadialGradient(width / 2, height / 2, width * 0.35, width / 2, height / 2, width * 0.75);
+      vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
+      vignette.addColorStop(1, 'rgba(0, 0, 0, 0.65)');
+      ctx.fillStyle = vignette;
+      ctx.fillRect(0, 0, width, height);
     } else {
-      // Procedural artistic scene guaranteed!
-      drawProceduralScene(ctx, width, height, current.scene.clipNumber, sceneProgress);
+      // Atmospheric cinematic backdrop if image is still loading
+      drawCinematicBackdrop(ctx, width, height, current.scene.clipNumber, current.scene.sceneName, sceneProgress);
     }
 
     // 2. Cinematic Letterbox Bars

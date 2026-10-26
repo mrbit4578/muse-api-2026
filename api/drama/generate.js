@@ -138,6 +138,13 @@ module.exports = async function handler(req, res) {
       // Storyboard Image Prompt for Image Generation API
       const imagePrompt = `Cinematic still from Vietnamese drama film, ${visualEn}, 35mm anamorphic lens, shot on Arri Alexa, cinematic lighting, 8k resolution, highly detailed, photorealistic`;
 
+      // Real Photorealistic AI Image URL (High-definition 1280x720, Arri Alexa 35mm cinematic still)
+      const cleanVisual = String(visualEn).replace(/[^a-zA-Z0-9\s,.-]/g, ' ').trim();
+      const realisticPrompt = encodeURIComponent(`cinematic dramatic still, ${cleanVisual}, masterpiece, highly detailed, photorealistic 8k, award winning film cinematography, 35mm photograph, shot on Arri Alexa`);
+      const seed = (i * 7919 + 101) % 999999;
+      const realAiUrl = `https://image.pollinations.ai/prompt/${realisticPrompt}?width=1280&height=720&nologo=true&seed=${seed}`;
+      const localProxyUrl = `/api/drama/image?scene=${i}&prompt=${encodeURIComponent(visualEn)}&title=${encodeURIComponent(sceneName)}`;
+
       scenes.push({
         clipNumber: i,
         act: act,
@@ -148,9 +155,9 @@ module.exports = async function handler(req, res) {
         dialogueOwner: charName,
         dialogue: dialogueVi,
         rawPrompt: promptLine,
-        // Guaranteed fast local visual (no CORS issues, instant loading)
-        imageUrl: `/api/drama/image?scene=${i}&title=${encodeURIComponent(sceneName)}`,
-        aiImageUrl: `https://image.pollinations.ai/prompt/${encodeURIComponent(visualEn + ', cinematic drama lighting, photorealistic 8k')}?width=1280&height=720&nologo=true&seed=${i * 1024 + 7}`
+        imageUrl: realAiUrl,
+        aiImageUrl: realAiUrl,
+        fallbackUrl: localProxyUrl
       });
 
       fullStoryMarkdown += `### Phân cảnh ${i} (${sceneName})\n`;

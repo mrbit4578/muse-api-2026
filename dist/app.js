@@ -244,7 +244,15 @@ async function checkGatewayStatus() {
 function getLocalAccounts() {
   try {
     const raw = localStorage.getItem('muse_account_pool');
-    return raw ? JSON.parse(raw) : [];
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) return [];
+    // Deduplicate on read
+    const map = new Map();
+    for (const a of parsed) {
+      const k = (a.email ? a.email.toLowerCase().trim() : (a.apiKey || a.id || ''));
+      if (k && !map.has(k)) map.set(k, a);
+    }
+    return Array.from(map.values());
   } catch {
     return [];
   }
@@ -252,7 +260,12 @@ function getLocalAccounts() {
 
 function saveLocalAccounts(list) {
   try {
-    localStorage.setItem('muse_account_pool', JSON.stringify(list));
+    const map = new Map();
+    for (const a of (list || [])) {
+      const k = (a.email ? a.email.toLowerCase().trim() : (a.apiKey || a.id || ''));
+      if (k && !map.has(k)) map.set(k, a);
+    }
+    localStorage.setItem('muse_account_pool', JSON.stringify(Array.from(map.values())));
   } catch (e) {
     console.warn('Cannot save account pool to localStorage:', e);
   }
@@ -260,7 +273,13 @@ function saveLocalAccounts(list) {
 
 function saveAccountToLocalPool(acc) {
   const list = getLocalAccounts();
-  const existingIdx = list.findIndex(a => a.id === acc.id || a.apiKey === acc.apiKey || (acc.email && a.email === acc.email));
+  const cleanEmail = (acc.email || '').toLowerCase().trim();
+  const existingIdx = list.findIndex(a => 
+    (cleanEmail && a.email && a.email.toLowerCase().trim() === cleanEmail) ||
+    (acc.id && a.id === acc.id) ||
+    (acc.apiKey && a.apiKey === acc.apiKey)
+  );
+
   if (existingIdx >= 0) {
     list[existingIdx] = { ...list[existingIdx], ...acc };
   } else {
@@ -297,8 +316,14 @@ function renderAccountStatusBadge(acc) {
     const ms = msMatch ? ` (${msMatch[1]})` : (acc.latencyMs ? ` (${acc.latencyMs}ms)` : '');
     return `<span class="status-tag live"><span class="dot live"></span> Live${ms}</span>`;
   }
+  if (acc.status && acc.status.includes('Chưa có Cookie')) {
+    return `<span class="status-tag warning" style="background:rgba(245, 158, 11, 0.2); color:#fbbf24; border:1px solid rgba(245, 158, 11, 0.4);">⚠️ Chưa có Cookie</span>`;
+  }
   if (acc.status && (acc.status.includes('Hết hạn') || acc.status.includes('401') || acc.isLive === false)) {
     return `<span class="status-tag error">🔴 ${acc.status || 'Hết hạn Cookie (401)'}</span>`;
+  }
+  if (acc.status && acc.status.includes('Chặn IP')) {
+    return `<span class="status-tag warning">🛡️ Chặn IP / WAF</span>`;
   }
   if (acc.status && acc.status.includes('Standby')) {
     return `<span class="status-tag warning">🟡 Standby</span>`;
@@ -325,27 +350,32 @@ async function loadAccountsList() {
     console.warn('Cannot load accounts from backend:', e);
   }
 
-  // Merge with localStorage accounts
+  // Merge with localStorage accounts with strict deduplication
   const localList = getLocalAccounts();
   const mergedMap = new Map();
+  const getDedupeKey = (a) => (a.email ? a.email.toLowerCase().trim() : (a.apiKey || a.id || ''));
 
   for (const acc of localList) {
-    if (acc.id) mergedMap.set(acc.id, acc);
+    const key = getDedupeKey(acc);
+    if (key) mergedMap.set(key, acc);
   }
 
   for (const acc of serverAccounts) {
-    if (acc.id) {
-      const prev = mergedMap.get(acc.id) || {};
-      mergedMap.set(acc.id, { ...prev, ...acc });
+    const key = getDedupeKey(acc);
+    if (key) {
+      const prev = mergedMap.get(key) || {};
+      mergedMap.set(key, { ...prev, ...acc });
     }
   }
 
   const allAccounts = Array.from(mergedMap.values());
+  saveLocalAccounts(allAccounts); // Prune duplicates from localStorage
 
   // Background sync any missing accounts to serverless backend
   if (serverAccounts.length < allAccounts.length) {
     for (const acc of allAccounts) {
-      if (!serverAccounts.some(s => s.id === acc.id)) {
+      const k = getDedupeKey(acc);
+      if (!serverAccounts.some(s => getDedupeKey(s) === k)) {
         fetch('/api/accounts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -385,8 +415,11 @@ async function loadAccountsList() {
             <button class="btn-check-live" onclick="checkAccountLive('${acc.id}', '${acc.apiKey}')" title="Kiểm tra độ trễ và tính hợp lệ của Cookie">
               🔍 Check Live
             </button>
+            <button class="btn-secondary" style="padding: 4px 8px; font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);" onclick="updateAccountCookie('${acc.id}', '${acc.email}')" title="Nhập hoặc dán Cookie mới cho tài khoản này">
+              🍪 Nạp Cookie
+            </button>
             <button class="btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="useAccountAsActive('${acc.apiKey}')">Dùng key này</button>
-            <button class="btn-secondary" style="padding: 4px 8px; font-size: 11px; color: #f87171;" onclick="deleteAccount('${acc.id}')">Xóa</button>
+            <button class="btn-secondary" style="padding: 4px 8px; font-size: 11px; color: #f87171;" onclick="deleteAccount('${acc.id}', '${acc.email}')">Xóa</button>
           </div>
         </td>
       </tr>
@@ -394,7 +427,48 @@ async function loadAccountsList() {
   }).join('');
 }
 
+async function updateAccountCookie(id, email) {
+  const cookieStr = prompt(`🍪 Dán chuỗi Cookie mới (từ Chrome DevTools Application/Network hoặc Extension) cho tài khoản:\n${email}`);
+  if (!cookieStr || !cookieStr.trim()) return;
+
+  const list = getLocalAccounts();
+  const acc = list.find(a => (id && a.id === id) || (email && a.email && a.email.toLowerCase().trim() === email.toLowerCase().trim()));
+  if (acc) {
+    acc.cookieString = cookieStr.trim();
+    acc.status = 'Đang kiểm tra...';
+    saveLocalAccounts(list);
+  }
+
+  showNotice(`Đang kiểm tra và lưu Cookie cho ${email}...`, 'info');
+
+  try {
+    const res = await fetch('/api/accounts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'sync',
+        id: acc?.id || id,
+        email: email,
+        apiKey: acc?.apiKey,
+        cookieString: cookieStr.trim()
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showNotice(`✅ Đã lưu Cookie! Đang ping live...`, 'success');
+      await checkAccountLive(acc?.id || id, acc?.apiKey);
+    } else {
+      showNotice(data.error || 'Lỗi cập nhật Cookie', 'error');
+    }
+  } catch (err) {
+    showNotice(`Lỗi: ${err.message}`, 'error');
+  }
+}
+
 async function checkAccountLive(id, apiKey) {
+  const localList = getLocalAccounts();
+  const acc = localList.find(a => (id && a.id === id) || (apiKey && a.apiKey === apiKey));
+
   const row = document.getElementById(`acc-row-${id}`);
   let checkBtn = null;
   if (row) {
@@ -409,13 +483,26 @@ async function checkAccountLive(id, apiKey) {
     const res = await fetch('/api/accounts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'check', id, apiKey })
+      body: JSON.stringify({
+        action: 'check',
+        id: acc?.id || id,
+        apiKey: acc?.apiKey || apiKey,
+        email: acc?.email,
+        cookies: acc?.cookies,
+        cookieString: acc?.cookieString,
+        plan: acc?.plan,
+        quota: acc?.quota
+      })
     });
     const data = await res.json();
 
     if (data.success && data.account) {
       const list = getLocalAccounts();
-      const idx = list.findIndex(a => a.id === id || a.apiKey === apiKey);
+      const idx = list.findIndex(a => 
+        a.id === (acc?.id || id) || 
+        a.apiKey === (acc?.apiKey || apiKey) || 
+        (acc?.email && a.email && a.email.toLowerCase().trim() === acc.email.toLowerCase().trim())
+      );
       if (idx >= 0) {
         list[idx] = { ...list[idx], ...data.account };
         saveLocalAccounts(list);
@@ -445,17 +532,24 @@ async function checkAllAccountsLive() {
   }
 
   try {
+    const localList = getLocalAccounts();
     const res = await fetch('/api/accounts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'check_all' })
+      body: JSON.stringify({
+        action: 'check_all',
+        accounts: localList
+      })
     });
     const data = await res.json();
 
     if (data.success && Array.isArray(data.results)) {
       const list = getLocalAccounts();
       data.results.forEach(resAcc => {
-        const idx = list.findIndex(a => a.id === resAcc.id);
+        const idx = list.findIndex(a => 
+          a.id === resAcc.id || 
+          (resAcc.email && a.email && a.email.toLowerCase().trim() === resAcc.email.toLowerCase().trim())
+        );
         if (idx >= 0) {
           list[idx] = { ...list[idx], ...resAcc };
         }
@@ -477,16 +571,18 @@ async function checkAllAccountsLive() {
   }
 }
 
-async function deleteAccount(id) {
-  if (!confirm('Bạn có chắc muốn xóa tài khoản này khỏi pool?')) return;
+async function deleteAccount(id, email) {
+  if (!confirm(`Bạn có chắc muốn xóa tài khoản ${email || id} khỏi pool?`)) return;
   try {
     await fetch('/api/accounts', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id })
+      body: JSON.stringify({ id, email })
     });
 
-    const list = getLocalAccounts().filter(a => a.id !== id);
+    const list = getLocalAccounts().filter(a => 
+      a.id !== id && (!email || a.email.toLowerCase().trim() !== email.toLowerCase().trim())
+    );
     saveLocalAccounts(list);
 
     loadAccountsList();

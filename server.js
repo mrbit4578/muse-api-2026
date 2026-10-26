@@ -121,6 +121,30 @@ async function requestHandler(req, res) {
       return await API_ROUTES['/v1/videos'](req, res);
     }
 
+    // Direct Web App Manifest Route for Android PWA Support
+    if (pathname === '/manifest.json') {
+      res.setHeader('Content-Type', 'application/manifest+json; charset=UTF-8');
+      const manifestPath = path.join(__dirname, 'public', 'manifest.json');
+      try {
+        if (fs.existsSync(manifestPath)) {
+          return res.end(fs.readFileSync(manifestPath));
+        }
+      } catch {}
+      return res.end(JSON.stringify({
+        name: "API Muse 2026 - AI Gateway & Drama Studio",
+        short_name: "API Muse",
+        start_url: "/?source=pwa",
+        display: "standalone",
+        orientation: "portrait",
+        background_color: "#020617",
+        theme_color: "#0ea5e9",
+        icons: [
+          { src: "/icons/icon48.png", sizes: "48x48", type: "image/png" },
+          { src: "/icons/icon128.png", sizes: "128x128", type: "image/png" }
+        ]
+      }));
+    }
+
     // 2. Serve static files from public/ or dist/
     const cleanPath = pathname === '/' ? 'index.html' : pathname.replace(/^\//, '');
     let fileBuf = getStaticFile(path.join(__dirname, 'public', cleanPath)) ||
